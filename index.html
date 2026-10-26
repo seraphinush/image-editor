@@ -7,11 +7,12 @@
     <title>Image Editor</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <script src="app.js"></script>
+    <link rel="stylesheet" href="design.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><i>◈</i> Image Editor</div>
+      <div class="brand"><i>◈</i><span>Image Editor</span><span>by seraphh</span></div>
       <div class="top-actions">
         <div class="theme-toggle" role="group" aria-label="Color theme">
           <button class="theme-button" type="button" data-theme-mode="light" aria-label="Light mode" title="Light mode">
@@ -57,10 +58,6 @@
         ><button class="btn" id="resizeBtn" type="button">Resize</button>
       </div>
       <div class="toolgroup">
-        <span class="tool-label">Color system</span
-        ><button class="btn" id="paletteBtn" type="button" title="Generate image color palette" aria-label="Generate image color palette"></button>
-      </div>
-      <div class="toolgroup">
         <span class="tool-label">Align</span><button class="btn" data-align="center">Center</button><button class="btn" data-align="horizontal">Center H</button
         ><button class="btn" data-align="vertical">Center V</button>
       </div>
@@ -90,24 +87,6 @@
         </div>
       </div>
     </main>
-    <dialog class="palette-dialog" id="paletteDialog" aria-labelledby="paletteTitle">
-      <section class="palette-panel">
-        <header class="palette-header">
-          <div>
-            <div class="palette-eyebrow">COLOR SYSTEM</div>
-            <h2 id="paletteTitle">Image palette</h2>
-            <p id="paletteSummary">Dominant colors from the visible canvas</p>
-          </div>
-          <button class="palette-close" type="button" id="closePalette" aria-label="Close palette">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
-        </header>
-        <div class="palette-grid" id="paletteGrid"></div>
-        <footer class="palette-footer">
-          <span>Click a swatch to copy its hex value</span><button class="btn primary" id="copyPalette" type="button">Copy CSS tokens</button>
-        </footer>
-      </section>
-    </dialog>
     <section class="bottom" aria-label="Images panel">
       <div class="bottom-head">
         <strong>Images</strong><span class="count" id="count">0</span><button class="btn" id="openBtn">＋ Add images</button><span class="spacer"></span

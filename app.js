@@ -858,7 +858,6 @@ function bootEditor() {
     '[data-align="vertical"]': ["vertical_align_center", "Center vertically"],
     '[data-align="horizontal"]': ["horizontal_align_center", "Center horizontally"],
     '[data-align="center"]': ["recenter", "Recenter"],
-    "#paletteBtn": ["palette", "Generate image color palette"],
     "#resizeBtn": ["check", "Apply canvas size"],
   };
   for (const [selector, [symbol, label]] of Object.entries(requestedSymbols)) {
@@ -872,117 +871,6 @@ function bootEditor() {
   handTool.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">pan_tool</span>';
   handTool.title = "Hand tool";
   handTool.setAttribute("aria-label", "Hand tool");
-
-  const paletteDialog = document.querySelector("#paletteDialog"),
-    paletteGrid = document.querySelector("#paletteGrid"),
-    paletteSummary = document.querySelector("#paletteSummary");
-  let paletteTokens = [];
-  function buildImagePalette() {
-    const source = document.querySelector("#canvas"),
-      scale = Math.min(1, 128 / source.width, 128 / source.height),
-      width = Math.max(1, Math.round(source.width * scale)),
-      height = Math.max(1, Math.round(source.height * scale)),
-      sample = document.createElement("canvas");
-    sample.width = width;
-    sample.height = height;
-    const sampleCtx = sample.getContext("2d", { willReadFrequently: true });
-    sampleCtx.drawImage(source, 0, 0, width, height);
-    const pixels = sampleCtx.getImageData(0, 0, width, height).data,
-      bins = new Map();
-    let visiblePixels = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const alpha = pixels[i + 3];
-      if (alpha < 160) continue;
-      visiblePixels++;
-      const r = pixels[i],
-        g = pixels[i + 1],
-        b = pixels[i + 2],
-        key = `${r >> 5}-${g >> 5}-${b >> 5}`;
-      let bin = bins.get(key);
-      if (!bin) {
-        bin = { r: 0, g: 0, b: 0, count: 0 };
-        bins.set(key, bin);
-      }
-      bin.r += r;
-      bin.g += g;
-      bin.b += b;
-      bin.count++;
-    }
-    const candidates = [...bins.values()]
-      .map((bin) => ({ r: Math.round(bin.r / bin.count), g: Math.round(bin.g / bin.count), b: Math.round(bin.b / bin.count), count: bin.count }))
-      .sort((a, b) => b.count - a.count);
-    paletteTokens = [];
-    for (const color of candidates) {
-      if (paletteTokens.every((other) => Math.hypot(color.r - other.r, color.g - other.g, color.b - other.b) >= 42)) paletteTokens.push(color);
-      if (paletteTokens.length === 8) break;
-    }
-    paletteGrid.replaceChildren();
-    paletteTokens.forEach((color, index) => {
-      const hex =
-          "#" +
-          [color.r, color.g, color.b]
-            .map((channel) => channel.toString(16).padStart(2, "0"))
-            .join("")
-            .toUpperCase(),
-        token = `--image-color-${String(index + 1).padStart(2, "0")}`,
-        card = document.createElement("button");
-      card.type = "button";
-      card.className = "palette-token";
-      card.title = `Copy ${hex}`;
-      const swatch = document.createElement("div");
-      swatch.className = "palette-swatch";
-      swatch.style.backgroundColor = hex;
-      const label = document.createElement("div");
-      label.className = "palette-token-label";
-      const name = document.createElement("span");
-      name.textContent = token;
-      const share = document.createElement("span");
-      share.textContent = `${Math.round((color.count / visiblePixels) * 100)}%`;
-      label.append(name, share);
-      const value = document.createElement("div");
-      value.className = "palette-token-value";
-      value.textContent = hex;
-      card.append(swatch, label, value);
-      card.addEventListener("click", () => copyPaletteText(hex, `Copied ${hex}`));
-      paletteGrid.append(card);
-    });
-    paletteSummary.textContent = paletteTokens.length
-      ? `Top ${paletteTokens.length} colors · sampled from the visible canvas`
-      : "Add or show an image to generate its color palette";
-    document.querySelector("#copyPalette").disabled = !paletteTokens.length;
-  }
-  async function copyPaletteText(value, confirmation) {
-    try {
-      await navigator.clipboard.writeText(value);
-      paletteSummary.textContent = confirmation;
-    } catch {
-      paletteSummary.textContent = "Clipboard access was blocked; select and copy the displayed values instead.";
-    }
-  }
-  document.querySelector("#paletteBtn").addEventListener("click", () => {
-    buildImagePalette();
-    paletteDialog.showModal();
-  });
-  document.querySelector("#closePalette").addEventListener("click", () => paletteDialog.close());
-  paletteDialog.addEventListener("click", (event) => {
-    if (event.target === paletteDialog) paletteDialog.close();
-  });
-  document.querySelector("#copyPalette").addEventListener("click", () =>
-    copyPaletteText(
-      ":root {\n" +
-        paletteTokens
-          .map(
-            (color, index) =>
-              `  --image-color-${String(index + 1).padStart(2, "0")}: #${[color.r, color.g, color.b]
-                .map((channel) => channel.toString(16).padStart(2, "0"))
-                .join("")
-                .toUpperCase()};`,
-          )
-          .join("\n") +
-        "\n}",
-      "CSS color tokens copied",
-    ),
-  );
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootEditor);
 else bootEditor();
