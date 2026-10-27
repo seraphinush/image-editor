@@ -31,6 +31,9 @@ function bootEditor() {
     const $ = (s) => document.querySelector(s),
       canvas = $("#canvas"),
       ctx = canvas.getContext("2d"),
+      stage = $("#stage"),
+      overflowCanvas = $("#overflowCanvas"),
+      overflowCtx = overflowCanvas.getContext("2d"),
       layersEl = $("#layers"),
       fileInput = $("#fileInput");
     let layers = [],
@@ -61,19 +64,14 @@ function bootEditor() {
     themeToggle.innerHTML = '<button class="theme-button" id="themeModeToggle" type="button" aria-label="Cycle color theme"></button>';
     const themeButton = $("#themeModeToggle"),
       themeIcons = {
-        light:
-          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM2 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1ZM5.64 4.22a1 1 0 0 1 1.42 0l.7.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42Zm11.3 11.3a1 1 0 0 1 1.42 0l.71.71a1 1 0 1 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.42Zm1.42-11.3a1 1 0 0 1 0 1.42l-.71.7a1 1 0 1 1-1.41-1.41l.7-.71a1 1 0 0 1 1.42 0Zm-11.3 11.3a1 1 0 0 1 0 1.42l-.71.71a1 1 0 1 1-1.41-1.42l.7-.7a1 1 0 0 1 1.42 0Z"/></svg>',
-        system:
-          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h7v2H7v2h10v-2h-4v-2h7ZM4 5h16v11H4V5Z"/></svg>',
-        dark: '<span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>',
+        light: '<span class="material-symbols outlined" aria-hidden="true">light_mode</span>',
+        system: '<span class="material-symbols outlined" aria-hidden="true">desktop_windows</span>',
+        dark: '<span class="material-symbols outlined" aria-hidden="true">dark_mode</span>',
       };
-    themeIcons.light =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM2 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm18 0a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1-1-1ZM5.64 4.22a1 1 0 0 1 1.42 0l.7.71a1 1 0 1 1-1.41 1.41l-.71-.7a1 1 0 0 1 0-1.42Zm11.3 11.3a1 1 0 0 1 1.42 0l.71.71a1 1 0 1 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.42Zm1.42-11.3a1 1 0 0 1 0 1.42l-.71.7a1 1 0 1 1-1.41-1.41l.7-.71a1 1 0 0 1 1.42 0Zm-11.3 11.3a1 1 0 0 1 0 1.42l-.71.71a1 1 0 1 1-1.41-1.42l.7-.7a1 1 0 0 1 1.42 0Z"/></svg>';
-    themeIcons.dark = '<span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>';
     function applyTheme() {
       const dark = themeMode === "dark" || (themeMode === "system" && themeQuery.matches);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
-      document.querySelector('meta[name="theme-color"]').content = dark ? "#17191e" : "#f5f4f1";
+      document.querySelector('meta[name="theme-color"]').content = dark ? "#1a1a1a" : "#eeede9";
       themeButton.innerHTML = themeIcons[themeMode];
       themeButton.title = `Theme: ${themeMode}. Click to switch to ${themeMode === "system" ? "light" : themeMode === "light" ? "dark" : "system"}.`;
       themeButton.setAttribute("aria-label", themeButton.title);
@@ -129,20 +127,12 @@ function bootEditor() {
       render();
       updateHistoryButtons();
     }
-    const undoButton = document.createElement("button"),
-      redoButton = document.createElement("button");
-    undoButton.type = redoButton.type = "button";
-    undoButton.className = redoButton.className = "btn icon";
-    undoButton.id = "undoBtn";
-    redoButton.id = "redoBtn";
-    $(".top-actions").insertBefore(undoButton, $("#copyBtn"));
-    $(".top-actions").insertBefore(redoButton, $("#copyBtn"));
-    undoButton.onclick = () => {
+    $("#undoBtn").onclick = () => {
       if (!undoStack.length) return;
       redoStack.push(captureState());
       restoreState(undoStack.pop());
     };
-    redoButton.onclick = () => {
+    $("#redoBtn").onclick = () => {
       if (!redoStack.length) return;
       undoStack.push(captureState());
       restoreState(redoStack.pop());
@@ -160,9 +150,37 @@ function bootEditor() {
       const availW = stageEl.clientWidth - padX,
         availH = stageEl.clientHeight - padY;
       if (availW < 8 || availH < 8) return;
-      const scale = Math.min(availW / canvas.width, availH / canvas.height);
+      const scale = Math.min(1, availW / canvas.width, availH / canvas.height);
       inner.style.width = canvas.width * scale + "px";
       inner.style.height = canvas.height * scale + "px";
+      drawOverflow();
+    }
+    function drawOverflow() {
+      const ratio = devicePixelRatio || 1,
+        w = Math.round(stage.clientWidth * ratio),
+        h = Math.round(stage.clientHeight * ratio);
+      if (overflowCanvas.width !== w || overflowCanvas.height !== h) {
+        overflowCanvas.width = w;
+        overflowCanvas.height = h;
+      }
+      overflowCtx.setTransform(1, 0, 0, 1, 0, 0);
+      overflowCtx.clearRect(0, 0, w, h);
+      const stageRect = stage.getBoundingClientRect(),
+        rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const scale = rect.width / canvas.width;
+      overflowCtx.setTransform(ratio * scale, 0, 0, ratio * scale, (rect.left - stageRect.left) * ratio, (rect.top - stageRect.top) * ratio);
+      for (const l of layers) {
+        if (l.visible === false) continue;
+        overflowCtx.globalAlpha = (l.opacity ?? 1) * 0.6;
+        overflowCtx.drawImage(l.img, l.sx, l.sy, l.sw, l.sh, l.x, l.y, l.w, l.h);
+      }
+      overflowCtx.globalAlpha = 1;
+      overflowCtx.setTransform(1, 0, 0, 1, 0, 0);
+      overflowCtx.globalCompositeOperation = "source-atop";
+      overflowCtx.fillStyle = "rgb(0 0 0 / 0.6)";
+      overflowCtx.fillRect(0, 0, w, h);
+      overflowCtx.globalCompositeOperation = "source-over";
     }
     function render(options = {}) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -182,7 +200,7 @@ function bootEditor() {
         canvas.dataset.fitW = String(canvas.width);
         canvas.dataset.fitH = String(canvas.height);
         fitCanvas();
-      }
+      } else drawOverflow();
       if (options.skipThumbs) return;
       for (const l of layers) {
         const c = l.thumb;
@@ -206,7 +224,7 @@ function bootEditor() {
         const card = document.createElement("div");
         const hidden = l.visible === false;
         card.className = "layer" + (selected.has(l.id) ? " selected" : "") + (hidden ? " is-hidden" : "");
-        card.innerHTML = `<div class="thumb"><canvas width="112" height="68"></canvas></div><div class="layer-meta"><div class="layer-name" title="${escapeHtml(l.name)}">${escapeHtml(l.name)}</div><div class="layer-size"></div></div><button class="layer-eye" type="button" aria-pressed="${hidden ? "false" : "true"}" title="${hidden ? "Show on canvas" : "Hide on canvas"}"><span class="material-symbols-outlined" aria-hidden="true">${hidden ? "visibility_off" : "visibility"}</span></button><button class="layer-x" type="button" title="Remove image"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>`;
+        card.innerHTML = `<div class="thumb"><canvas width="112" height="68"></canvas></div><div class="layer-meta"><div class="layer-name" title="${escapeHtml(l.name)}">${escapeHtml(l.name)}</div><div class="layer-size"></div></div><button class="layer-eye" type="button" aria-pressed="${hidden ? "false" : "true"}" title="${hidden ? "Show on canvas" : "Hide on canvas"}"><span class="material-symbols outlined" aria-hidden="true">${hidden ? "visibility_off" : "visibility"}</span></button><button class="layer-x" type="button" title="Remove image"><span class="material-symbols outlined" aria-hidden="true">close</span></button>`;
         l.thumb = card.querySelector("canvas");
         l.sizeEl = card.querySelector(".layer-size");
         l.sizeEl.textContent = `${l.w} × ${l.h} px`;
@@ -304,7 +322,6 @@ function bootEditor() {
           if (f) loadFile(f);
         }
     });
-    const stage = $("#stage");
     stage.addEventListener("dragover", (e) => {
       e.preventDefault();
     });
@@ -315,44 +332,14 @@ function bootEditor() {
     $("#handBtn").onclick = () => {
       hand = !hand;
       $("#handBtn").classList.toggle("active", hand);
-      canvas.style.cursor = hand ? "grab" : "default";
+      stage.style.cursor = hand ? "grab" : "default";
     };
-    const setIcon = (selector, path, title) => {
+    const setIcon = (selector, symbol, title, iconClass = "material-symbols outlined") => {
       const el = $(selector);
-      el.innerHTML = `<svg class="material-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+      el.innerHTML = `<span class="${iconClass}" aria-hidden="true">${symbol}</span>`;
       el.title = title;
       el.setAttribute("aria-label", title);
     };
-    $(".brand i").innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2ZM5 5h14v10l-4.5-4.5-3.5 3.5-2.5-2.5L5 15V5Zm3 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>';
-    setIcon("#openBtn", "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2ZM5 5h14v10l-4.5-4.5-3.5 3.5-2.5-2.5L5 15V5Z", "Add images");
-    setIcon(
-      "#handBtn",
-      "M23 11.5c-1.1 0-2 .9-2 2V9c0-1.1-.9-2-2-2-.4 0-.7.1-1 .3V6c0-1.1-.9-2-2-2-.4 0-.7.1-1 .3V5c0-1.1-.9-2-2-2s-2 .9-2 2v8.2l-1.6-1.7c-.8-.8-2.1-.8-2.9 0-.7.7-.8 1.9-.1 2.7l5.1 6.2c.8 1 2 1.6 3.3 1.6h4.7c2.2 0 4-1.8 4-4v-6.5z",
-      "Hand tool",
-    );
-    setIcon(
-      "#scaleBtn",
-      "M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2ZM5 5h14v14H5V5Zm2 12 4-5 3 3 2-2 2 4H7Zm1-8a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
-      "Apply scale",
-    );
-    setIcon(
-      "#fitImageBtn",
-      "M3 3h8v2H6.41l4.3 4.29-1.42 1.42L5 6.41V11H3V3Zm18 18h-8v-2h4.59l-4.3-4.29 1.42-1.42 4.29 4.3V13h2v8ZM13 3h8v8h-2V6.41l-4.29 4.3-1.42-1.42 4.3-4.29H13V3ZM3 13h2v4.59l4.29-4.3 1.42 1.42-4.3 4.29H11v2H3v-8Z",
-      "Fit canvas to image",
-    );
-    setIcon('[data-align="center"]', "M12 2 8 6h3v12H8l4 4 4-4h-3V6h3l-4-4ZM3 11v2h18v-2H3Z", "Center");
-    setIcon('[data-align="horizontal"]', "M8 5h2v14H8V5Zm6 0h2v14h-2V5ZM3 11h18v2H3v-2Z", "Center horizontally");
-    setIcon('[data-align="vertical"]', "M5 8h14v2H5V8Zm0 6h14v2H5v-2ZM11 3h2v18h-2V3Z", "Center vertically");
-    setIcon("#selectAll", "M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm8-2h8v8h-8v-8Zm2 2v4h4v-4h-4Z", "Select all");
-    setIcon("#mergeH", "M3 11h13l-4-4 1.4-1.4L20 12l-6.6 6.4L12 17l4-4H3v-2Z", "Merge horizontally");
-    setIcon("#mergeV", "M11 3h2v13l4-4 1.4 1.4L12 20l-6.4-6.6L7 12l4 4V3Z", "Merge vertically");
-    setIcon("#downloadBtn", "M5 20h14v-2H5v2Zm7-3 6-6-1.4-1.4-3.6 3.6V3h-2v10.2L7.4 9.6 6 11l6 6Z", "Download PNG");
-    setIcon(
-      "#copyBtn",
-      "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1Zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2Zm0 16H8V7h11v14Z",
-      "Copy",
-    );
     document.addEventListener("keydown", (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target;
@@ -368,7 +355,7 @@ function bootEditor() {
       }
     });
     canvas.draggable = false;
-    canvas.style.cursor = "grab";
+    stage.style.cursor = "grab";
     canvas.addEventListener("dragstart", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -398,10 +385,10 @@ function bootEditor() {
         recordStep({ type: "move", dx: l.x - drag.startLayerX, dy: l.y - drag.startLayerY });
       }
       drag = null;
-      canvas.style.cursor = hand ? "grab" : "default";
+      stage.style.cursor = hand ? "grab" : "default";
       render();
     }
-    canvas.addEventListener(
+    stage.addEventListener(
       "pointerdown",
       (e) => {
         if (!hand) return;
@@ -417,13 +404,13 @@ function bootEditor() {
         }
         drag = { id: hit.id, x: p.x, y: p.y, startLayerX: hit.x, startLayerY: hit.y, beforeState: captureState(), pointerId: e.pointerId };
         try {
-          canvas.setPointerCapture(e.pointerId);
+          stage.setPointerCapture(e.pointerId);
         } catch {}
-        canvas.style.cursor = "grabbing";
+        stage.style.cursor = "grabbing";
       },
       { passive: false },
     );
-    canvas.addEventListener(
+    stage.addEventListener(
       "pointermove",
       (e) => {
         if (!drag || e.pointerId !== drag.pointerId) return;
@@ -442,8 +429,8 @@ function bootEditor() {
       },
       { passive: false },
     );
-    canvas.addEventListener("pointerup", endDrag);
-    canvas.addEventListener("pointercancel", endDrag);
+    stage.addEventListener("pointerup", endDrag);
+    stage.addEventListener("pointercancel", endDrag);
     document.querySelectorAll("[data-crop]").forEach(
       (b) =>
         (b.onclick = () => {
@@ -505,18 +492,70 @@ function bootEditor() {
       recordStep({ type: "scale", value: v, unit });
       render();
     };
-    const lockIcon =
-        '<svg class="material-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-2V6a5 5 0 0 0-5-5Zm-3 8V6a3 3 0 0 1 6 0v3H9Zm10 12H5V11h14v10Z"/></svg>',
-      unlockIcon =
-        '<svg class="material-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 1a5 5 0 0 0-5 5v3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-4V6a3 3 0 0 1 5.83-.98l1.94-.5A5 5 0 0 0 18 1ZM5 11h14v10H5V11Z"/></svg>';
-    $("#lockBtn").innerHTML = lockIcon;
-    $("#lockBtn").onclick = () => {
-      lock = !lock;
-      $("#lockBtn").innerHTML = lock ? lockIcon : unlockIcon;
-      $("#lockBtn").title = lock ? "Unlock aspect ratio" : "Lock aspect ratio";
-      $("#lockBtn").setAttribute("aria-label", $("#lockBtn").title);
+    function setLock(value) {
+      lock = value;
+      setIcon("#lockBtn", lock ? "lock" : "lock_open_right", lock ? "Unlock aspect ratio" : "Lock aspect ratio");
       $("#lockBtn").classList.toggle("active", lock);
-    };
+    }
+    $("#lockBtn").onclick = () => setLock(!lock);
+    let resize = null,
+      resizeFrame = 0;
+    function applyResize() {
+      resizeFrame = 0;
+      if (!resize?.pending) return;
+      const { corner, pending } = resize,
+        west = corner.includes("w"),
+        north = corner.includes("n"),
+        dx = ((pending.x - resize.x) / resize.scale) * 2 * (west ? -1 : 1),
+        dy = ((pending.y - resize.y) / resize.scale) * 2 * (north ? -1 : 1),
+        w = Math.max(1, Math.round(resize.w + dx)),
+        h = Math.max(1, Math.round(resize.h + dy));
+      if (w === canvas.width && h === canvas.height) return;
+      for (const [l, x, y] of resize.positions) {
+        l.x = west ? x + (w - resize.w) : x;
+        l.y = north ? y + (h - resize.h) : y;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      render({ skipThumbs: true });
+    }
+    function endResize() {
+      if (!resize) return;
+      if (resizeFrame) cancelAnimationFrame(resizeFrame);
+      applyResize();
+      if (canvas.width !== resize.w || canvas.height !== resize.h) pushHistory(resize.beforeState);
+      resize = null;
+      render();
+    }
+    document.querySelectorAll(".canvas-handle").forEach((handle) => {
+      handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = canvas.getBoundingClientRect();
+        resize = {
+          corner: handle.dataset.corner,
+          x: e.clientX,
+          y: e.clientY,
+          w: canvas.width,
+          h: canvas.height,
+          scale: rect.width / canvas.width || 1,
+          positions: layers.map((l) => [l, l.x, l.y]),
+          beforeState: captureState(),
+        };
+        setLock(false);
+        try {
+          handle.setPointerCapture(e.pointerId);
+        } catch {}
+      });
+      handle.addEventListener("pointermove", (e) => {
+        if (!resize) return;
+        e.preventDefault();
+        resize.pending = { x: e.clientX, y: e.clientY };
+        if (!resizeFrame) resizeFrame = requestAnimationFrame(applyResize);
+      });
+      handle.addEventListener("pointerup", endResize);
+      handle.addEventListener("pointercancel", endResize);
+    });
     $("#canvasW").oninput = () => {
       if (lock) $("#canvasH").value = $("#canvasW").value;
     };
@@ -630,18 +669,6 @@ function bootEditor() {
       selected = new Set(layers.map((l) => l.id));
       drawList();
     };
-    setIcon(
-      "#recordSeries",
-      "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z",
-      "Start recording a transformation series",
-    );
-    setIcon(
-      "#saveSeries",
-      "M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4ZM12 19a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM6 5h9v4H6V5Zm13 14h-2a5 5 0 0 0-10 0H5V5h-1v14h14v-2Z",
-      "Save series as template",
-    );
-    setIcon("#applySeries", "M8 5v14l11-7L8 5Z", "Apply template to selected images");
-    setIcon("#deleteTemplate", "M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z", "Delete selected template");
     function refreshTemplates() {
       const select = $("#templateSelect"),
         previous = select.value;
@@ -722,16 +749,12 @@ function bootEditor() {
         recordedSteps = [];
         $("#recordSeries").classList.add("recording");
         $("#recordSeries").setAttribute("aria-pressed", "true");
-        setIcon("#recordSeries", "M6 6h12v12H6z", "Stop recording transformation series");
+        setIcon("#recordSeries", "stop", "Stop recording transformation series", "material-symbols filled");
         say("Recording transformations.");
       } else {
         $("#recordSeries").classList.remove("recording");
         $("#recordSeries").setAttribute("aria-pressed", "false");
-        setIcon(
-          "#recordSeries",
-          "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z",
-          "Start recording a transformation series",
-        );
+        setIcon("#recordSeries", "radio_button_checked", "Start recording a transformation series");
         say(`Stopped recording: ${recordedSteps.length} step${recordedSteps.length === 1 ? "" : "s"}.`);
       }
     };
@@ -808,69 +831,14 @@ function bootEditor() {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
-    const materialArrows = {
-      left: "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2Z",
-      right: "M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4v-2Z",
-      top: "M11 20V7.83l-5.59 5.59L4 12l8-8 8 8-1.41 1.41L13 7.83V20h-2Z",
-      bottom: "M13 4v12.17l5.59-5.59L20 12l-8 8-8-8 1.41-1.41L11 16.17V4h2Z",
-    };
-    for (const dir of Object.keys(materialArrows)) {
-      setIcon(`[data-crop="${dir}"]`, materialArrows[dir], `Crop from ${dir}`);
-      setIcon(`[data-edge="${dir}"]`, materialArrows[dir], `Move to ${dir} edge`);
-    }
-    setIcon("#openBtn", "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z", "Add images");
-    setIcon(
-      "#handBtn",
-      "M23 11.5c-1.1 0-2 .9-2 2V9c0-1.1-.9-2-2-2-.4 0-.7.1-1 .3V6c0-1.1-.9-2-2-2-.4 0-.7.1-1 .3V5c0-1.1-.9-2-2-2s-2 .9-2 2v8.2l-1.6-1.7c-.8-.8-2.1-.8-2.9 0-.7.7-.8 1.9-.1 2.7l5.1 6.2c.8 1 2 1.6 3.3 1.6h4.7c2.2 0 4-1.8 4-4v-6.5z",
-      "Hand tool",
-    );
-    setIcon("#mergeH", materialArrows.right, "Merge horizontally");
-    setIcon("#mergeV", materialArrows.bottom, "Merge vertically");
-    setIcon(
-      "#undoBtn",
-      "M12.5 8c-2.65 0-5.05 1.09-6.78 2.86L2 7v10h10l-3.88-3.88A6.48 6.48 0 0 1 12.5 11c3.04 0 5.64 2.08 6.34 4.9l1.93-.52A8.5 8.5 0 0 0 12.5 8Z",
-      "Undo",
-    );
-    setIcon(
-      "#redoBtn",
-      "M11.5 8c2.65 0 5.05 1.09 6.78 2.86L22 7v10H12l3.88-3.88A6.48 6.48 0 0 0 11.5 11c-3.04 0-5.64 2.08-6.34 4.9l-1.93-.52A8.5 8.5 0 0 1 11.5 8Z",
-      "Redo",
-    );
-    const shiftMaterial = {
-      top: "M8 11h2v5h4v-5h2l-4-4-4 4ZM3 3h18v2H3V3Zm0 16h18v2H3v-2Z",
-      bottom: "M16 13h-2V8h-4v5H8l4 4 4-4ZM3 3h18v2H3V3Zm0 16h18v2H3v-2Z",
-      left: "M3 3h2v18H3V3Zm4 2h10v6H7V5Zm0 8h7v6H7v-6Z",
-      right: "M19 3h2v18h-2V3ZM7 5h10v6H7V5Zm3 8h7v6h-7v-6Z",
-    };
-    for (const edge of Object.keys(shiftMaterial)) setIcon(`[data-edge="${edge}"]`, shiftMaterial[edge], `Move to ${edge} edge`);
-    setIcon('[data-align="center"]', "M3 3h6v2H5v4H3V3Zm12 0h6v6h-2V5h-4V3ZM3 15h2v4h4v2H3v-6Zm16 0h2v6h-6v-2h4v-4Zm-7-6 3 3-3 3-3-3 3-3Z", "Recenter");
-    setIcon('[data-align="horizontal"]', "M11 3h2v18h-2V3ZM3 7h7v4H3V7Zm11 0h7v4h-7V7ZM5 13h5v4H5v-4Zm9 0h5v4h-5v-4Z", "Center horizontally");
-    setIcon('[data-align="vertical"]', "M3 11h18v2H3v-2ZM7 3h4v7H7V3Zm0 11h4v7H7v-7Zm6-9h4v5h-4V5Zm0 9h4v7h-4v-7Z", "Center vertically");
-    new ResizeObserver(() => fitCanvas()).observe($("#stage"));
+    const placeImagesPanel = () => document.documentElement.style.setProperty("--panel-top", `${$("#stage").offsetTop}px`);
+    new ResizeObserver(() => {
+      fitCanvas();
+      placeImagesPanel();
+    }).observe($("#stage"));
+    placeImagesPanel();
     render();
   })();
-
-  const requestedSymbols = {
-    '[data-edge="top"]': ["vertical_align_top", "Move to top edge"],
-    '[data-edge="bottom"]': ["vertical_align_bottom", "Move to bottom edge"],
-    '[data-edge="left"]': ["horizontal_align_left", "Move to left edge"],
-    '[data-edge="right"]': ["horizontal_align_right", "Move to right edge"],
-    '[data-align="vertical"]': ["vertical_align_center", "Center vertically"],
-    '[data-align="horizontal"]': ["horizontal_align_center", "Center horizontally"],
-    '[data-align="center"]': ["recenter", "Recenter"],
-    "#resizeBtn": ["check", "Apply canvas size"],
-  };
-  for (const [selector, [symbol, label]] of Object.entries(requestedSymbols)) {
-    const button = document.querySelector(selector);
-    button.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">${symbol}</span>`;
-    button.title = label;
-    button.setAttribute("aria-label", label);
-  }
-
-  const handTool = document.querySelector("#handBtn");
-  handTool.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">pan_tool</span>';
-  handTool.title = "Hand tool";
-  handTool.setAttribute("aria-label", "Hand tool");
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootEditor);
 else bootEditor();
