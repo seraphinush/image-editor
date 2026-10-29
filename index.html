@@ -11,162 +11,164 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
-        <i><span class="material-symbols outlined" aria-hidden="true">image</span></i
-        ><span>Image Editor</span><span>by seraphh</span>
-      </div>
-      <div class="top-actions">
-        <div class="theme-toggle" role="group" aria-label="Color theme">
-          <button class="theme-button" type="button" data-theme-mode="light" aria-label="Light mode" title="Light mode">
-            <span class="material-symbols outlined" aria-hidden="true">light_mode</span></button
-          ><button class="theme-button" type="button" data-theme-mode="system" aria-label="System mode" title="System mode">
-            <span class="material-symbols outlined" aria-hidden="true">desktop_windows</span></button
-          ><button class="theme-button" type="button" data-theme-mode="dark" aria-label="Dark mode" title="Dark mode">
-            <span class="material-symbols outlined" aria-hidden="true">dark_mode</span>
-          </button>
-        </div>
-        <button class="btn icon" id="undoBtn" type="button" title="Undo" aria-label="Undo" disabled>
+    <header class="app-header">
+      <h1 class="brand">
+        <span class="brand-logo"><span class="material-symbols outlined" aria-hidden="true">image</span></span
+        ><span class="brand-name">Image Editor</span><small class="brand-author">by seraphh</small>
+      </h1>
+      <div class="header-actions">
+        <button class="button icon-only" id="undoBtn" type="button" title="Undo" aria-label="Undo" disabled>
           <span class="material-symbols outlined" aria-hidden="true">undo</span></button
-        ><button class="btn icon" id="redoBtn" type="button" title="Redo" aria-label="Redo" disabled>
+        ><button class="button icon-only" id="redoBtn" type="button" title="Redo" aria-label="Redo" disabled>
           <span class="material-symbols outlined" aria-hidden="true">redo</span></button
-        ><button class="btn icon primary" id="copyBtn" type="button" title="Copy" aria-label="Copy">
+        ><button class="button icon-only primary" id="copyBtn" type="button" title="Copy" aria-label="Copy">
           <span class="material-symbols outlined" aria-hidden="true">content_copy</span></button
-        ><button class="btn icon" id="downloadBtn" type="button" title="Download PNG" aria-label="Download PNG">
+        ><button class="button icon-only" id="downloadBtn" type="button" title="Download PNG" aria-label="Download PNG">
           <span class="material-symbols outlined" aria-hidden="true">download</span>
         </button>
+        <div></div>
+        <div class="theme-toggle" role="group" aria-label="Color theme"></div>
       </div>
     </header>
     <nav class="toolbar" aria-label="Image tools">
-      <div class="toolgroup">
-        <span class="tool-label">Tool</span
-        ><button class="btn icon active" id="handBtn" type="button" title="Hand tool" aria-label="Hand tool">
+      <div class="tool-group" role="group" aria-labelledby="toolLabel">
+        <span class="tool-group-label" id="toolLabel">Tool</span
+        ><button class="button icon-only" id="handBtn" type="button" title="Hand tool" aria-label="Hand tool" aria-pressed="true">
           <span class="material-symbols outlined" aria-hidden="true">pan_tool</span>
         </button>
       </div>
-      <div class="toolgroup" id="cropTools">
-        <span class="tool-label">Crop</span
-        ><input id="cropAmount" type="number" min="0" value="0" aria-label="Crop amount in pixels" title="Crop amount (C)" /><span class="unit-label">px</span
-        ><button class="btn icon" type="button" data-crop="left" title="Crop from left" aria-label="Crop from left">
+      <div class="tool-group" role="group" aria-labelledby="cropLabel">
+        <span class="tool-group-label" id="cropLabel">Crop</span
+        ><input id="cropAmount" type="number" min="0" value="0" aria-label="Crop amount in pixels" title="Crop amount (C)" /><span class="unit">px</span
+        ><button class="button icon-only" type="button" data-crop="left" title="Crop from left" aria-label="Crop from left">
           <span class="material-symbols outlined" aria-hidden="true">arrow_back</span></button
-        ><button class="btn icon" type="button" data-crop="right" title="Crop from right" aria-label="Crop from right">
+        ><button class="button icon-only" type="button" data-crop="right" title="Crop from right" aria-label="Crop from right">
           <span class="material-symbols outlined" aria-hidden="true">arrow_forward</span></button
-        ><button class="btn icon" type="button" data-crop="top" title="Crop from top" aria-label="Crop from top">
+        ><button class="button icon-only" type="button" data-crop="top" title="Crop from top" aria-label="Crop from top">
           <span class="material-symbols outlined" aria-hidden="true">arrow_upward</span></button
-        ><button class="btn icon" type="button" data-crop="bottom" title="Crop from bottom" aria-label="Crop from bottom">
+        ><button class="button icon-only" type="button" data-crop="bottom" title="Crop from bottom" aria-label="Crop from bottom">
           <span class="material-symbols outlined" aria-hidden="true">arrow_downward</span>
         </button>
       </div>
-      <div class="toolgroup">
-        <span class="tool-label">Scale</span><input id="scaleValue" type="number" min="1" value="100" aria-label="Scale value" /><select
+      <div class="tool-group" role="group" aria-labelledby="scaleLabel">
+        <span class="tool-group-label" id="scaleLabel">Scale</span><input id="scaleValue" type="number" min="1" value="100" aria-label="Scale value" /><select
           id="scaleUnit"
           class="select"
+          aria-label="Scale unit"
         >
           <option value="percent">%</option>
           <option value="pixels">px width</option></select
-        ><button class="btn icon" id="scaleBtn" type="button" title="Apply scale" aria-label="Apply scale">
+        ><button class="button icon-only" id="scaleBtn" type="button" title="Apply scale" aria-label="Apply scale">
           <span class="material-symbols outlined" aria-hidden="true">check</span>
         </button>
       </div>
-      <div class="toolgroup">
-        <span class="tool-label">Canvas</span
-        ><button class="btn icon" id="fitImageBtn" type="button" title="Fit canvas to image" aria-label="Fit canvas to image">
+      <div class="tool-group" role="group" aria-labelledby="canvasLabel">
+        <span class="tool-group-label" id="canvasLabel">Canvas</span
+        ><button class="button icon-only" id="fitImageBtn" type="button" title="Fit canvas to image" aria-label="Fit canvas to image">
           <span class="material-symbols outlined" aria-hidden="true">zoom_out_map</span></button
-        ><input id="canvasW" type="number" min="1" value="500" aria-label="Canvas width" /><span class="unit-label">px</span
-        ><button class="btn icon" id="lockBtn" title="Unlock aspect ratio" aria-label="Unlock aspect ratio">
+        ><input id="canvasW" type="number" min="1" value="500" aria-label="Canvas width" /><span class="unit">px</span
+        ><button class="button icon-only" id="lockBtn" type="button" title="Unlock aspect ratio" aria-label="Unlock aspect ratio">
           <span class="material-symbols outlined" aria-hidden="true">lock</span></button
-        ><input id="canvasH" type="number" min="1" value="500" aria-label="Canvas height" /><span class="unit-label">px</span
-        ><button class="btn icon" id="resizeBtn" type="button" title="Apply canvas size" aria-label="Apply canvas size">
+        ><input id="canvasH" type="number" min="1" value="500" aria-label="Canvas height" /><span class="unit">px</span
+        ><button class="button icon-only" id="resizeBtn" type="button" title="Apply canvas size" aria-label="Apply canvas size">
           <span class="material-symbols outlined" aria-hidden="true">check</span>
         </button>
       </div>
-      <div class="toolgroup">
-        <span class="tool-label">Align</span
-        ><button class="btn icon" type="button" data-align="center" title="Recenter" aria-label="Recenter">
+      <div class="tool-group" role="group" aria-labelledby="alignLabel">
+        <span class="tool-group-label" id="alignLabel">Align</span
+        ><button class="button icon-only" type="button" data-align="center" title="Recenter" aria-label="Recenter">
           <span class="material-symbols outlined" aria-hidden="true">recenter</span></button
-        ><button class="btn icon" type="button" data-align="horizontal" title="Center horizontally" aria-label="Center horizontally">
+        ><button class="button icon-only" type="button" data-align="horizontal" title="Center horizontally" aria-label="Center horizontally">
           <span class="material-symbols outlined" aria-hidden="true">horizontal_align_center</span></button
-        ><button class="btn icon" type="button" data-align="vertical" title="Center vertically" aria-label="Center vertically">
+        ><button class="button icon-only" type="button" data-align="vertical" title="Center vertically" aria-label="Center vertically">
           <span class="material-symbols outlined" aria-hidden="true">vertical_align_center</span>
         </button>
       </div>
-      <div class="toolgroup">
-        <span class="tool-label">Shift to edge</span
-        ><button class="btn icon" type="button" data-edge="left" title="Move to left edge" aria-label="Move to left edge">
+      <div class="tool-group" role="group" aria-labelledby="edgeLabel">
+        <span class="tool-group-label" id="edgeLabel">Shift to edge</span
+        ><button class="button icon-only" type="button" data-edge="left" title="Move to left edge" aria-label="Move to left edge">
           <span class="material-symbols outlined" aria-hidden="true">horizontal_align_left</span></button
-        ><button class="btn icon" type="button" data-edge="right" title="Move to right edge" aria-label="Move to right edge">
+        ><button class="button icon-only" type="button" data-edge="right" title="Move to right edge" aria-label="Move to right edge">
           <span class="material-symbols outlined" aria-hidden="true">horizontal_align_right</span></button
-        ><button class="btn icon" type="button" data-edge="top" title="Move to top edge" aria-label="Move to top edge">
+        ><button class="button icon-only" type="button" data-edge="top" title="Move to top edge" aria-label="Move to top edge">
           <span class="material-symbols outlined" aria-hidden="true">vertical_align_top</span></button
-        ><button class="btn icon" type="button" data-edge="bottom" title="Move to bottom edge" aria-label="Move to bottom edge">
+        ><button class="button icon-only" type="button" data-edge="bottom" title="Move to bottom edge" aria-label="Move to bottom edge">
           <span class="material-symbols outlined" aria-hidden="true">vertical_align_bottom</span>
         </button>
       </div>
-      <div class="toolgroup" id="seriesTools">
-        <span class="tool-label">Templates</span
+      <div class="tool-group" role="group" aria-labelledby="templatesLabel">
+        <span class="tool-group-label" id="templatesLabel">Templates</span
         ><button
-          class="btn icon"
+          class="button icon-only"
           id="recordSeries"
           type="button"
           title="Start recording a transformation series"
           aria-label="Start recording a transformation series"
+          aria-pressed="false"
         >
           <span class="material-symbols outlined" aria-hidden="true">radio_button_checked</span></button
         ><select id="templateSelect" class="select" aria-label="Saved transformation templates">
           <option value="">Choose template</option></select
-        ><button class="btn icon" id="saveSeries" type="button" title="Save series as template" aria-label="Save series as template">
+        ><button class="button icon-only" id="saveSeries" type="button" title="Save series as template" aria-label="Save series as template">
           <span class="material-symbols outlined" aria-hidden="true">save</span></button
-        ><button class="btn icon" id="applySeries" type="button" title="Apply template to selected images" aria-label="Apply template to selected images">
+        ><button
+          class="button icon-only"
+          id="applySeries"
+          type="button"
+          title="Apply template to selected images"
+          aria-label="Apply template to selected images"
+        >
           <span class="material-symbols outlined" aria-hidden="true">play_arrow</span></button
-        ><button class="btn icon" id="deleteTemplate" type="button" title="Delete selected template" aria-label="Delete selected template">
+        ><button class="button icon-only" id="deleteTemplate" type="button" title="Delete selected template" aria-label="Delete selected template">
           <span class="material-symbols outlined" aria-hidden="true">delete</span>
         </button>
       </div>
     </nav>
     <main class="stage" id="stage">
       <canvas class="stage-overflow" id="overflowCanvas" aria-hidden="true"></canvas>
-      <div class="stage-inner">
-        <canvas id="canvas" width="500" height="500" draggable="false"></canvas><span class="canvas-handle" data-corner="nw" aria-hidden="true"></span
-        ><span class="canvas-handle" data-corner="ne" aria-hidden="true"></span><span class="canvas-handle" data-corner="sw" aria-hidden="true"></span
-        ><span class="canvas-handle" data-corner="se" aria-hidden="true"></span>
+      <div class="canvas-frame">
+        <canvas id="canvas" width="500" height="500" draggable="false"></canvas><span class="resize-handle" data-corner="nw" aria-hidden="true"></span
+        ><span class="resize-handle" data-corner="ne" aria-hidden="true"></span><span class="resize-handle" data-corner="sw" aria-hidden="true"></span
+        ><span class="resize-handle" data-corner="se" aria-hidden="true"></span>
       </div>
-      <div class="empty" id="empty">
-        <div class="empty-card">
-          <h1>Your image workspace</h1>
+      <div class="empty-state" id="empty">
+        <section class="empty-state-card" aria-labelledby="emptyTitle">
+          <h2 id="emptyTitle">Your image workspace</h2>
           <p>Drop images here, paste from your clipboard, or add files to get started.</p>
-          <button class="btn primary" id="emptyOpen"><span class="material-symbols outlined" aria-hidden="true">add</span><b>Choose images</b></button>
-          <p class="hint">PNG · JPG · GIF · WebP · Ctrl/⌘+V to paste</p>
-        </div>
+          <button class="button primary" id="emptyOpen" type="button">
+            <span class="material-symbols outlined" aria-hidden="true">add</span><span>Choose images</span>
+          </button>
+          <p class="empty-state-hint">PNG · JPG · GIF · WebP · Ctrl/⌘+V to paste</p>
+        </section>
       </div>
     </main>
-    <section class="bottom" aria-label="Images panel">
-      <div class="bottom-head">
-        <strong>Images</strong><span class="count" id="count">0</span
-        ><button class="btn icon" id="openBtn" type="button" title="Add images" aria-label="Add images">
-          <span class="material-symbols outlined" aria-hidden="true">add</span></button
-        ><span class="spacer"></span
-        ><button class="btn icon" id="selectAll" type="button" title="Select all" aria-label="Select all">
-          <span class="material-symbols outlined" aria-hidden="true">grid_view</span></button
-        ><span class="footer-separator" aria-hidden="true"></span
-        ><button class="btn icon" id="mergeH" type="button" title="Merge horizontally" aria-label="Merge horizontally">
-          <span class="material-symbols outlined" aria-hidden="true">arrow_forward</span></button
-        ><button class="btn icon" id="mergeV" type="button" title="Merge vertically" aria-label="Merge vertically">
-          <span class="material-symbols outlined" aria-hidden="true">arrow_downward</span></button
-        ><button
-          class="btn icon"
-          id="toggleImages"
-          type="button"
-          aria-label="Collapse images panel"
-          aria-expanded="true"
-          title="Collapse images panel"
-          data-direction="right"
-        >
+    <aside class="images-panel" id="imagesPanel" aria-labelledby="imagesTitle">
+      <header class="images-panel-header">
+        <h2 class="images-panel-title" id="imagesTitle">Images</h2>
+        <span class="image-count" id="count">0</span
+        ><button class="button icon-only" id="openBtn" type="button" title="Add images" aria-label="Add images">
+          <span class="material-symbols outlined" aria-hidden="true">add</span>
+        </button>
+        <div class="images-panel-actions">
+          <button class="button icon-only" id="selectAll" type="button" title="Select all" aria-label="Select all">
+            <span class="material-symbols outlined" aria-hidden="true">grid_view</span>
+          </button>
+          <hr class="divider" aria-orientation="vertical" />
+          <button class="button icon-only" id="mergeH" type="button" title="Merge horizontally" aria-label="Merge horizontally">
+            <span class="material-symbols outlined" aria-hidden="true">arrow_forward</span></button
+          ><button class="button icon-only" id="mergeV" type="button" title="Merge vertically" aria-label="Merge vertically">
+            <span class="material-symbols outlined" aria-hidden="true">arrow_downward</span>
+          </button>
+        </div>
+        <button id="toggleImages" type="button" aria-label="Collapse images panel" aria-expanded="true" aria-controls="layers" title="Collapse images panel">
           <span class="material-symbols outlined" aria-hidden="true">chevron_right</span>
         </button>
-      </div>
-      <div class="layer-list" id="layers"><div class="empty-layers" id="layerHint">Pasted and added images will appear here.</div></div>
-    </section>
-    <div class="status" id="status" role="status"></div>
-    <input type="file" id="fileInput" accept="image/*" multiple />
+      </header>
+      <ul class="image-list" id="layers">
+        <li class="image-list-empty">Pasted and added images will appear here.</li>
+      </ul>
+    </aside>
+    <div class="toast" id="status" role="status"></div>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden />
   </body>
 </html>

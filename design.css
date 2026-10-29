@@ -33,9 +33,9 @@
   --color-black: #000000;
 
   --color-background: var(--color-white);
-  --color-stage-background: var(--color-gray-100);
+  --color-stage-background: var(--color-gray-200);
   --color-canvas-border: var(--color-gray-400);
-  --color-canvas-border-handle: var(--color-gray-600);
+  --color-canvas-border-handle: var(--color-white);
   --color-button-border: var(--color-gray-200);
   --color-button-border-hover: var(--color-gray-300);
   --color-button-background: transparent;
@@ -76,12 +76,6 @@
   --color-layer-name: #55574f;
   --color-layer-selected: var(--color-layer);
   --color-stage-dot: var(--color-gray-150);
-  --color-theme-button: var(--color-gray-500);
-  --color-theme-button-bg: var(--color-surface);
-  --color-theme-button-border: var(--color-border);
-  --color-theme-button-hover: var(--color-theme-button-bg);
-  --color-theme-button-pressed: var(--color-theme-button-bg);
-  --color-theme-toggle: transparent;
   --color-thumb: #f2f1ed;
   --color-thumb-checker: #e5e5e1;
   --color-tool-label: var(--color-text-subtle);
@@ -146,12 +140,6 @@ html[data-theme="dark"] {
   --color-layer-name: var(--color-gray-150);
   --color-layer-selected: var(--color-accent-900);
   --color-stage-dot: var(--color-gray-750);
-  --color-theme-button: var(--color-gray-300);
-  --color-theme-button-bg: var(--color-gray-750);
-  --color-theme-button-border: var(--color-gray-650);
-  --color-theme-button-hover: var(--color-gray-700);
-  --color-theme-button-pressed: var(--color-gray-700);
-  --color-theme-toggle: var(--color-gray-900);
   --color-thumb: var(--color-gray-850);
   --color-thumb-checker: var(--color-gray-750);
   --color-tool-label: var(--color-gray-350);

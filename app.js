@@ -7,26 +7,27 @@ try {
 }
 
 function bootEditor() {
-  const imagesPanelToggle = document.querySelector("#toggleImages");
+  const imagesPanel = document.querySelector("#imagesPanel"),
+    imagesPanelToggle = document.querySelector("#toggleImages");
   let imagesCollapsed = false;
   try {
     imagesCollapsed = localStorage.getItem("image-editor-images-collapsed") === "true";
   } catch {}
   function setImagesCollapsed(collapsed) {
     imagesCollapsed = collapsed;
-    document.body.classList.toggle("images-collapsed", collapsed);
+    imagesPanel.classList.toggle("is-collapsed", collapsed);
+    const label = `${collapsed ? "Expand" : "Collapse"} images panel`;
     imagesPanelToggle.setAttribute("aria-expanded", String(!collapsed));
-    imagesPanelToggle.setAttribute("aria-label", `${collapsed ? "Expand" : "Collapse"} images panel`);
-    imagesPanelToggle.title = `${collapsed ? "Expand" : "Collapse"} images panel`;
-    imagesPanelToggle.dataset.direction = matchMedia("(max-width: 700px)").matches ? (collapsed ? "up" : "down") : collapsed ? "left" : "right";
+    imagesPanelToggle.setAttribute("aria-label", label);
+    imagesPanelToggle.title = label;
     try {
       localStorage.setItem("image-editor-images-collapsed", String(collapsed));
     } catch {}
   }
   imagesPanelToggle.addEventListener("click", () => setImagesCollapsed(!imagesCollapsed));
   setImagesCollapsed(imagesCollapsed);
-  requestAnimationFrame(() => document.body.classList.add("images-animate"));
-  addEventListener("resize", () => setImagesCollapsed(imagesCollapsed));
+  // Two frames so the restored state paints before transitions are enabled.
+  requestAnimationFrame(() => requestAnimationFrame(() => imagesPanel.classList.add("is-animated")));
   (() => {
     const $ = (s) => document.querySelector(s),
       canvas = $("#canvas"),
@@ -61,7 +62,7 @@ function bootEditor() {
       themeMode = localStorage.getItem("image-editor-theme") || "dark";
     } catch {}
     if (!["system", "light", "dark"].includes(themeMode)) themeMode = "system";
-    themeToggle.innerHTML = '<button class="theme-button" id="themeModeToggle" type="button" aria-label="Cycle color theme"></button>';
+    themeToggle.innerHTML = '<button class="button icon-only" id="themeModeToggle" type="button" aria-label="Cycle color theme"></button>';
     const themeButton = $("#themeModeToggle"),
       themeIcons = {
         light: '<span class="material-symbols outlined" aria-hidden="true">light_mode</span>',
@@ -95,9 +96,9 @@ function bootEditor() {
     function say(message) {
       const el = $("#status");
       el.textContent = message;
-      el.classList.add("show");
+      el.classList.add("is-visible");
       clearTimeout(say.timer);
-      say.timer = setTimeout(() => el.classList.remove("show"), 2200);
+      say.timer = setTimeout(() => el.classList.remove("is-visible"), 2200);
     }
     function recordStep(step) {
       if (recording) recordedSteps.push(step);
@@ -143,7 +144,7 @@ function bootEditor() {
     }
     function fitCanvas() {
       const stageEl = $("#stage"),
-        inner = stageEl.querySelector(".stage-inner"),
+        inner = stageEl.querySelector(".canvas-frame"),
         cs = getComputedStyle(stageEl);
       const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight),
         padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
@@ -217,16 +218,16 @@ function bootEditor() {
     function drawList() {
       layersEl.innerHTML = "";
       if (!layers.length) {
-        layersEl.innerHTML = '<div class="empty-layers">Pasted and added images will appear here.</div>';
+        layersEl.innerHTML = '<li class="image-list-empty">Pasted and added images will appear here.</li>';
         return;
       }
       for (const l of layers) {
-        const card = document.createElement("div");
+        const card = document.createElement("li");
         const hidden = l.visible === false;
-        card.className = "layer" + (selected.has(l.id) ? " selected" : "") + (hidden ? " is-hidden" : "");
-        card.innerHTML = `<div class="thumb"><canvas width="112" height="68"></canvas></div><div class="layer-meta"><div class="layer-name" title="${escapeHtml(l.name)}">${escapeHtml(l.name)}</div><div class="layer-size"></div></div><button class="layer-eye" type="button" aria-pressed="${hidden ? "false" : "true"}" title="${hidden ? "Show on canvas" : "Hide on canvas"}"><span class="material-symbols outlined" aria-hidden="true">${hidden ? "visibility_off" : "visibility"}</span></button><button class="layer-x" type="button" title="Remove image"><span class="material-symbols outlined" aria-hidden="true">close</span></button>`;
+        card.className = "image-card" + (selected.has(l.id) ? " is-selected" : "") + (hidden ? " is-hidden" : "");
+        card.innerHTML = `<div class="image-card-thumb"><canvas width="112" height="68"></canvas></div><div class="image-card-info"><p class="image-card-name" title="${escapeHtml(l.name)}">${escapeHtml(l.name)}</p><p class="image-card-size"></p></div><button class="image-card-visibility" type="button" aria-pressed="${hidden ? "false" : "true"}" title="${hidden ? "Show on canvas" : "Hide on canvas"}"><span class="material-symbols outlined" aria-hidden="true">${hidden ? "visibility_off" : "visibility"}</span></button><button class="image-card-remove" type="button" title="Remove image" aria-label="Remove image"><span class="material-symbols outlined" aria-hidden="true">close</span></button>`;
         l.thumb = card.querySelector("canvas");
-        l.sizeEl = card.querySelector(".layer-size");
+        l.sizeEl = card.querySelector(".image-card-size");
         l.sizeEl.textContent = `${l.w} × ${l.h} px`;
         card.addEventListener("click", (e) => {
           const touch = matchMedia("(max-width: 700px), (pointer: coarse)").matches;
@@ -245,14 +246,14 @@ function bootEditor() {
         card.title = matchMedia("(max-width: 700px), (pointer: coarse)").matches
           ? "Tap to select. Tap a selected image again to remove it."
           : "Shift-click to select more than one image";
-        card.querySelector(".layer-eye").addEventListener("click", (e) => {
+        card.querySelector(".image-card-visibility").addEventListener("click", (e) => {
           e.stopPropagation();
           pushHistory();
           l.visible = l.visible === false;
           drawList();
           render();
         });
-        card.querySelector(".layer-x").addEventListener("click", (e) => {
+        card.querySelector(".image-card-remove").addEventListener("click", (e) => {
           e.stopPropagation();
           pushHistory();
           layers = layers.filter((x) => x.id !== l.id);
@@ -331,7 +332,7 @@ function bootEditor() {
     });
     $("#handBtn").onclick = () => {
       hand = !hand;
-      $("#handBtn").classList.toggle("active", hand);
+      $("#handBtn").setAttribute("aria-pressed", String(hand));
       stage.style.cursor = hand ? "grab" : "default";
     };
     const setIcon = (selector, symbol, title, iconClass = "material-symbols outlined") => {
@@ -495,7 +496,6 @@ function bootEditor() {
     function setLock(value) {
       lock = value;
       setIcon("#lockBtn", lock ? "lock" : "lock_open_right", lock ? "Unlock aspect ratio" : "Lock aspect ratio");
-      $("#lockBtn").classList.toggle("active", lock);
     }
     $("#lockBtn").onclick = () => setLock(!lock);
     let resize = null,
@@ -527,7 +527,7 @@ function bootEditor() {
       resize = null;
       render();
     }
-    document.querySelectorAll(".canvas-handle").forEach((handle) => {
+    document.querySelectorAll(".resize-handle").forEach((handle) => {
       handle.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -747,12 +747,12 @@ function bootEditor() {
       recording = !recording;
       if (recording) {
         recordedSteps = [];
-        $("#recordSeries").classList.add("recording");
+        $("#recordSeries").classList.add("is-recording");
         $("#recordSeries").setAttribute("aria-pressed", "true");
         setIcon("#recordSeries", "stop", "Stop recording transformation series", "material-symbols filled");
         say("Recording transformations.");
       } else {
-        $("#recordSeries").classList.remove("recording");
+        $("#recordSeries").classList.remove("is-recording");
         $("#recordSeries").setAttribute("aria-pressed", "false");
         setIcon("#recordSeries", "radio_button_checked", "Start recording a transformation series");
         say(`Stopped recording: ${recordedSteps.length} step${recordedSteps.length === 1 ? "" : "s"}.`);
@@ -831,12 +831,46 @@ function bootEditor() {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
-    const placeImagesPanel = () => document.documentElement.style.setProperty("--panel-top", `${$("#stage").offsetTop}px`);
-    new ResizeObserver(() => {
-      fitCanvas();
-      placeImagesPanel();
-    }).observe($("#stage"));
-    placeImagesPanel();
+    let listDrag = null,
+      suppressListClick = false;
+    layersEl.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "touch" || e.button !== 0 || e.target.closest("button")) return;
+      listDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: layersEl.scrollLeft, top: layersEl.scrollTop, moved: false };
+    });
+    layersEl.addEventListener("pointermove", (e) => {
+      if (!listDrag || e.pointerId !== listDrag.id) return;
+      const dx = e.clientX - listDrag.x,
+        dy = e.clientY - listDrag.y;
+      if (!listDrag.moved) {
+        if (Math.hypot(dx, dy) < 5) return;
+        listDrag.moved = true;
+        layersEl.setPointerCapture(e.pointerId);
+        layersEl.classList.add("is-dragging");
+      }
+      layersEl.scrollLeft = listDrag.left - dx;
+      layersEl.scrollTop = listDrag.top - dy;
+    });
+    const endListDrag = (e) => {
+      if (!listDrag || e.pointerId !== listDrag.id) return;
+      if (listDrag.moved) {
+        suppressListClick = true;
+        setTimeout(() => (suppressListClick = false));
+      }
+      layersEl.classList.remove("is-dragging");
+      listDrag = null;
+    };
+    layersEl.addEventListener("pointerup", endListDrag);
+    layersEl.addEventListener("pointercancel", endListDrag);
+    layersEl.addEventListener(
+      "click",
+      (e) => {
+        if (!suppressListClick) return;
+        e.stopPropagation();
+        e.preventDefault();
+      },
+      true,
+    );
+    new ResizeObserver(fitCanvas).observe($("#stage"));
     render();
   })();
 }
