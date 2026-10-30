@@ -40,6 +40,7 @@ function bootEditor() {
     let layers = [],
       selected = new Set(),
       activeId = null,
+      topId = null,
       lock = true,
       drag = null,
       hand = true,
@@ -100,6 +101,39 @@ function bootEditor() {
       clearTimeout(say.timer);
       say.timer = setTimeout(() => el.classList.remove("is-visible"), 2200);
     }
+    function confirmDialog({ title, message, accent = "yes" }) {
+      const dialog = $("#confirm"),
+        yes = $("#confirmYes"),
+        no = $("#confirmNo"),
+        actions = $("#confirmActions");
+      $("#confirmTitle").textContent = title;
+      $("#confirmMessage").textContent = message;
+      yes.classList.toggle("primary", accent === "yes");
+      no.classList.toggle("primary", accent === "no");
+      actions.replaceChildren(accent === "yes" ? no : yes, accent === "yes" ? yes : no);
+      dialog.showModal();
+      (accent === "yes" ? yes : no).focus();
+      return new Promise((resolve) => {
+        const onClick = (e) => {
+          const rect = dialog.getBoundingClientRect();
+          const inside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+          if (!inside) dialog.close("no");
+        };
+        dialog.addEventListener("click", onClick);
+        dialog.addEventListener(
+          "close",
+          () => {
+            dialog.removeEventListener("click", onClick);
+            yes.onclick = null;
+            no.onclick = null;
+            resolve(dialog.returnValue === "yes");
+          },
+          { once: true },
+        );
+        yes.onclick = () => dialog.close("yes");
+        no.onclick = () => dialog.close("no");
+      });
+    }
     function recordStep(step) {
       if (recording) recordedSteps.push(step);
     }
@@ -124,10 +158,31 @@ function bootEditor() {
       layers = state.layers.map((layer) => ({ ...layer }));
       selected = new Set(state.selected);
       activeId = state.activeId;
+      topId = null;
+      const restored = layers.find((layer) => layer.id === activeId);
+      if (restored && restored.visible !== false && selected.has(restored.id)) topId = restored.id;
       drawList();
       render();
       updateHistoryButtons();
     }
+    $("#clearBtn").onclick = async () => {
+      if (!layers.length && canvas.width === 500 && canvas.height === 500) return;
+      const ok = await confirmDialog({
+        title: "Remove all images?",
+        message: "This removes every image and resets the canvas to its initial size.",
+        accent: "no",
+      });
+      if (!ok) return;
+      pushHistory();
+      layers = [];
+      selected.clear();
+      activeId = null;
+      topId = null;
+      canvas.width = 500;
+      canvas.height = 500;
+      drawList();
+      render();
+    };
     $("#undoBtn").onclick = () => {
       if (!undoStack.length) return;
       redoStack.push(captureState());
@@ -141,6 +196,11 @@ function bootEditor() {
     updateHistoryButtons();
     function active() {
       return layers.find((x) => x.id === activeId);
+    }
+    function stack() {
+      const top = layers.find((layer) => layer.id === topId);
+      if (!top || top.visible === false || layers.length < 2) return layers;
+      return layers.filter((layer) => layer !== top).concat(top);
     }
     function fitCanvas() {
       const stageEl = $("#stage"),
@@ -171,7 +231,7 @@ function bootEditor() {
       if (!rect.width || !rect.height) return;
       const scale = rect.width / canvas.width;
       overflowCtx.setTransform(ratio * scale, 0, 0, ratio * scale, (rect.left - stageRect.left) * ratio, (rect.top - stageRect.top) * ratio);
-      for (const l of layers) {
+      for (const l of stack()) {
         if (l.visible === false) continue;
         overflowCtx.globalAlpha = (l.opacity ?? 1) * 0.6;
         overflowCtx.drawImage(l.img, l.sx, l.sy, l.sw, l.sh, l.x, l.y, l.w, l.h);
@@ -185,8 +245,8 @@ function bootEditor() {
     }
     function render(options = {}) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const l of layers) {
-        if (l.sizeEl) l.sizeEl.textContent = `${l.w} × ${l.h} px`;
+      for (const l of layers) if (l.sizeEl) l.sizeEl.textContent = `${l.w} × ${l.h} px`;
+      for (const l of stack()) {
         if (l.visible === false) continue;
         ctx.save();
         ctx.globalAlpha = l.opacity ?? 1;
@@ -195,6 +255,7 @@ function bootEditor() {
       }
       $("#empty").style.display = layers.length ? "none" : "flex";
       $("#count").textContent = layers.length;
+      $("#clearBtn").disabled = !layers.length && canvas.width === 500 && canvas.height === 500;
       $("#canvasW").value = canvas.width;
       $("#canvasH").value = canvas.height;
       if (canvas.dataset.fitW !== String(canvas.width) || canvas.dataset.fitH !== String(canvas.height)) {
@@ -225,31 +286,28 @@ function bootEditor() {
         const card = document.createElement("li");
         const hidden = l.visible === false;
         card.className = "image-card" + (selected.has(l.id) ? " is-selected" : "") + (hidden ? " is-hidden" : "");
+        card.dataset.id = String(l.id);
         card.innerHTML = `<div class="image-card-thumb"><canvas width="112" height="68"></canvas></div><div class="image-card-info"><p class="image-card-name" title="${escapeHtml(l.name)}">${escapeHtml(l.name)}</p><p class="image-card-size"></p></div><button class="image-card-visibility" type="button" aria-pressed="${hidden ? "false" : "true"}" title="${hidden ? "Show on canvas" : "Hide on canvas"}"><span class="material-symbols outlined" aria-hidden="true">${hidden ? "visibility_off" : "visibility"}</span></button><button class="image-card-remove" type="button" title="Remove image" aria-label="Remove image"><span class="material-symbols outlined" aria-hidden="true">close</span></button>`;
         l.thumb = card.querySelector("canvas");
         l.sizeEl = card.querySelector(".image-card-size");
         l.sizeEl.textContent = `${l.w} × ${l.h} px`;
-        card.addEventListener("click", (e) => {
-          const touch = matchMedia("(max-width: 700px), (pointer: coarse)").matches;
-          if (e.shiftKey || e.metaKey || e.ctrlKey || touch) {
-            if (selected.has(l.id)) {
-              if (selected.size > 1) selected.delete(l.id);
-            } else selected.add(l.id);
-            if (!selected.size) selected.add(l.id);
-          } else {
-            selected.clear();
-            selected.add(l.id);
-          }
-          activeId = l.id;
+        card.addEventListener("click", () => {
+          if (selected.has(l.id)) {
+            if (selected.size > 1) selected.delete(l.id);
+          } else selected.add(l.id);
+          if (!selected.size) selected.add(l.id);
+          if (selected.has(l.id)) {
+            activeId = l.id;
+            if (l.visible !== false) topId = l.id;
+          } else activeId = [...selected].at(-1) ?? null;
           drawList();
         });
-        card.title = matchMedia("(max-width: 700px), (pointer: coarse)").matches
-          ? "Tap to select. Tap a selected image again to remove it."
-          : "Shift-click to select more than one image";
+        card.title = "Tap to select. Tap again to remove it. Hold and drag to reorder.";
         card.querySelector(".image-card-visibility").addEventListener("click", (e) => {
           e.stopPropagation();
           pushHistory();
           l.visible = l.visible === false;
+          if (l.visible !== false && l.id === activeId && selected.has(l.id)) topId = l.id;
           drawList();
           render();
         });
@@ -290,6 +348,7 @@ function bootEditor() {
       selected.clear();
       selected.add(l.id);
       activeId = l.id;
+      topId = l.id;
       drawList();
       render();
     }
@@ -395,12 +454,12 @@ function bootEditor() {
         if (!hand) return;
         e.preventDefault();
         const p = canvasPoint(e);
-        const hit = [...layers].reverse().find((l) => l.visible !== false && p.x >= l.x && p.x <= l.x + l.w && p.y >= l.y && p.y <= l.y + l.h);
+        const hit = [...stack()].reverse().find((l) => l.visible !== false && p.x >= l.x && p.x <= l.x + l.w && p.y >= l.y && p.y <= l.y + l.h);
         if (!hit) return;
         if (!selected.has(hit.id)) {
-          selected.clear();
           selected.add(hit.id);
           activeId = hit.id;
+          topId = hit.id;
           drawList();
         }
         drag = { id: hit.id, x: p.x, y: p.y, startLayerX: hit.x, startLayerY: hit.y, beforeState: captureState(), pointerId: e.pointerId };
@@ -627,18 +686,20 @@ function bootEditor() {
           render();
         }),
     );
-    function merge(direction) {
+    async function merge(direction) {
       const group = layers.filter((l) => selected.has(l.id));
       if (group.length < 2) {
-        say(
-          matchMedia("(max-width: 700px), (pointer: coarse)").matches
-            ? "Tap each image to select it. Tap a selected image again to remove it."
-            : "Select at least two images to merge (Shift-click images).",
-        );
+        say("Tap each image to select it. Tap a selected image again to remove it.");
         return;
       }
-      const vertical = direction === "v",
-        width = vertical ? Math.max(...group.map((l) => l.w)) : group.reduce((a, l) => a + l.w, 0),
+      const vertical = direction === "v";
+      const ok = await confirmDialog({
+        title: vertical ? "Merge vertically?" : "Merge horizontally?",
+        message: `Merge ${group.length} selected images into one and fit the canvas to the result.`,
+        accent: "yes",
+      });
+      if (!ok) return;
+      const width = vertical ? Math.max(...group.map((l) => l.w)) : group.reduce((a, l) => a + l.w, 0),
         height = vertical ? group.reduce((a, l) => a + l.h, 0) : Math.max(...group.map((l) => l.h));
       const out = document.createElement("canvas");
       out.width = width;
@@ -658,6 +719,8 @@ function bootEditor() {
       img.onload = () => {
         pushHistory();
         layers = layers.filter((l) => !selected.has(l.id));
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
         addImage(img, `Merged ${group.length} images`, true);
         say(`Merged ${group.length} images.`);
       };
@@ -832,25 +895,142 @@ function bootEditor() {
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
     let listDrag = null,
+      reorder = null,
       suppressListClick = false;
-    layersEl.addEventListener("pointerdown", (e) => {
-      if (e.pointerType === "touch" || e.button !== 0 || e.target.closest("button")) return;
-      listDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: layersEl.scrollLeft, top: layersEl.scrollTop, moved: false };
-    });
-    layersEl.addEventListener("pointermove", (e) => {
-      if (!listDrag || e.pointerId !== listDrag.id) return;
-      const dx = e.clientX - listDrag.x,
-        dy = e.clientY - listDrag.y;
-      if (!listDrag.moved) {
-        if (Math.hypot(dx, dy) < 5) return;
-        listDrag.moved = true;
-        layersEl.setPointerCapture(e.pointerId);
-        layersEl.classList.add("is-dragging");
+    function listIsRow() {
+      return getComputedStyle(layersEl).flexDirection.startsWith("row");
+    }
+    function reorderIndex(clientX, clientY, dragId) {
+      let index = 0;
+      for (const card of layersEl.querySelectorAll(".image-card")) {
+        if (Number(card.dataset.id) === dragId) continue;
+        const rect = card.getBoundingClientRect();
+        const mid = listIsRow() ? rect.left + rect.width / 2 : rect.top + rect.height / 2;
+        if ((listIsRow() ? clientX : clientY) > mid) index++;
       }
-      layersEl.scrollLeft = listDrag.left - dx;
-      layersEl.scrollTop = listDrag.top - dy;
+      return index;
+    }
+    function syncCardOrder() {
+      for (const layer of layers) {
+        const card = layersEl.querySelector(`.image-card[data-id="${layer.id}"]`);
+        if (card) layersEl.append(card);
+      }
+    }
+    function placeDragGhost(x, y) {
+      if (!reorder?.ghost) return;
+      reorder.ghost.style.transform = `translate3d(${x - reorder.offsetX}px, ${y - reorder.offsetY}px, 0)`;
+    }
+    function beginReorder() {
+      if (!reorder || reorder.ready) return;
+      clearTimeout(reorder.timer);
+      reorder.ready = true;
+      reorder.before = captureState();
+      reorder.card.classList.add("is-reordering");
+      layersEl.classList.add("is-reordering");
+      const rect = reorder.card.getBoundingClientRect();
+      reorder.offsetX = reorder.x - rect.left;
+      reorder.offsetY = reorder.y - rect.top;
+      const ghost = reorder.card.cloneNode(true);
+      const source = reorder.card.querySelector("canvas");
+      const copy = ghost.querySelector("canvas");
+      if (source && copy) {
+        copy.width = source.width;
+        copy.height = source.height;
+        copy.getContext("2d").drawImage(source, 0, 0);
+      }
+      ghost.classList.remove("is-reordering");
+      ghost.classList.add("image-drag-ghost");
+      ghost.style.width = `${rect.width}px`;
+      ghost.style.height = `${rect.height}px`;
+      document.body.append(ghost);
+      reorder.ghost = ghost;
+      placeDragGhost(reorder.x, reorder.y);
+      try {
+        reorder.card.setPointerCapture(reorder.pointerId);
+      } catch {}
+    }
+    function finishReorder(e) {
+      if (!reorder || e.pointerId !== reorder.pointerId) return;
+      clearTimeout(reorder.timer);
+      if (reorder.ready) {
+        reorder.ghost?.remove();
+        reorder.card.classList.remove("is-reordering");
+        layersEl.classList.remove("is-reordering");
+        suppressListClick = true;
+        setTimeout(() => (suppressListClick = false));
+        const before = reorder.before.layers.map((layer) => layer.id).join(",");
+        if (reorder.moved && before !== layers.map((layer) => layer.id).join(",")) pushHistory(reorder.before);
+        render();
+      }
+      reorder = null;
+    }
+    layersEl.addEventListener("pointerdown", (e) => {
+      if ((e.pointerType !== "touch" && e.button !== 0) || e.target.closest("button")) return;
+      const card = e.target.closest(".image-card");
+      if (!card) {
+        if (e.pointerType === "touch") return;
+        listDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: layersEl.scrollLeft, top: layersEl.scrollTop, moved: false };
+        return;
+      }
+      reorder = { pointerId: e.pointerId, pointerType: e.pointerType, id: Number(card.dataset.id), card, x: e.clientX, y: e.clientY, ready: false, moved: false, before: null, timer: null };
+      if (e.pointerType === "touch") reorder.timer = setTimeout(beginReorder, 280);
     });
+    layersEl.addEventListener(
+      "pointermove",
+      (e) => {
+        if (reorder && e.pointerId === reorder.pointerId) {
+          const distance = Math.hypot(e.clientX - reorder.x, e.clientY - reorder.y);
+          if (!reorder.ready) {
+            if (reorder.pointerType === "touch") {
+              if (distance > 10) {
+                clearTimeout(reorder.timer);
+                reorder = null;
+              }
+            } else if (distance > 5) beginReorder();
+            if (!reorder?.ready) return;
+          }
+          e.preventDefault();
+          reorder.moved = true;
+          placeDragGhost(e.clientX, e.clientY);
+          const index = reorderIndex(e.clientX, e.clientY, reorder.id),
+            from = layers.findIndex((layer) => layer.id === reorder.id);
+          if (from !== index) {
+            const [layer] = layers.splice(from, 1);
+            layers.splice(index, 0, layer);
+            syncCardOrder();
+            render({ skipThumbs: true });
+          }
+          const rect = layersEl.getBoundingClientRect();
+          if (listIsRow()) {
+            if (e.clientX < rect.left + 36) layersEl.scrollLeft -= 14;
+            else if (e.clientX > rect.right - 36) layersEl.scrollLeft += 14;
+          } else if (e.clientY < rect.top + 28) layersEl.scrollTop -= 14;
+          else if (e.clientY > rect.bottom - 28) layersEl.scrollTop += 14;
+          return;
+        }
+        if (!listDrag || e.pointerId !== listDrag.id) return;
+        const dx = e.clientX - listDrag.x,
+          dy = e.clientY - listDrag.y;
+        if (!listDrag.moved) {
+          if (Math.hypot(dx, dy) < 5) return;
+          listDrag.moved = true;
+          layersEl.setPointerCapture(e.pointerId);
+          layersEl.classList.add("is-dragging");
+        }
+        layersEl.scrollLeft = listDrag.left - dx;
+        layersEl.scrollTop = listDrag.top - dy;
+      },
+      { passive: false },
+    );
+    layersEl.addEventListener(
+      "touchmove",
+      (e) => {
+        if (reorder?.ready) e.preventDefault();
+      },
+      { passive: false },
+    );
     const endListDrag = (e) => {
+      finishReorder(e);
       if (!listDrag || e.pointerId !== listDrag.id) return;
       if (listDrag.moved) {
         suppressListClick = true;

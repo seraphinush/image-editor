@@ -17,6 +17,10 @@
         ><span class="brand-name">Image Editor</span><small class="brand-author">by seraphh</small>
       </h1>
       <div class="header-actions">
+        <button class="button icon-only" id="clearBtn" type="button" title="New" aria-label="New" disabled>
+          <span class="material-symbols outlined" aria-hidden="true">draft</span>
+        </button>
+        <div></div>
         <button class="button icon-only" id="undoBtn" type="button" title="Undo" aria-label="Undo" disabled>
           <span class="material-symbols outlined" aria-hidden="true">undo</span></button
         ><button class="button icon-only" id="redoBtn" type="button" title="Redo" aria-label="Redo" disabled>
@@ -169,6 +173,14 @@
       </ul>
     </aside>
     <div class="toast" id="status" role="status"></div>
+    <dialog class="confirm" id="confirm" aria-labelledby="confirmTitle">
+      <h2 id="confirmTitle"></h2>
+      <p id="confirmMessage"></p>
+      <div class="confirm-actions" id="confirmActions">
+        <button class="button" id="confirmYes" type="button">Yes</button>
+        <button class="button" id="confirmNo" type="button">No</button>
+      </div>
+    </dialog>
     <input type="file" id="fileInput" accept="image/*" multiple hidden />
   </body>
 </html>
