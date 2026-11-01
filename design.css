@@ -158,6 +158,7 @@ html[data-theme="dark"] {
   margin: 0;
   margin-block-start: 0;
   margin-block-end: 0;
+  border: 0;
   padding: 0;
 }
 

@@ -49,7 +49,8 @@ function bootEditor() {
       recordedSteps = [],
       templates = [],
       undoStack = [],
-      redoStack = [];
+      redoStack = [],
+      transforming = false;
     try {
       templates = JSON.parse(localStorage.getItem("image-editor-templates") || "[]");
       if (!Array.isArray(templates)) templates = [];
@@ -311,12 +312,20 @@ function bootEditor() {
           drawList();
           render();
         });
-        card.querySelector(".image-card-remove").addEventListener("click", (e) => {
+        card.querySelector(".image-card-remove").addEventListener("click", async (e) => {
           e.stopPropagation();
+          if ($("#confirm").open) return;
+          const ok = await confirmDialog({
+            title: "Remove this image?",
+            message: `This removes “${l.name}”.`,
+            accent: "no",
+          });
+          if (!ok || !layers.includes(l)) return;
           pushHistory();
           layers = layers.filter((x) => x.id !== l.id);
           selected.delete(l.id);
           if (activeId === l.id) activeId = layers.at(-1)?.id ?? null;
+          if (topId === l.id) topId = null;
           drawList();
           render();
         });
@@ -552,6 +561,86 @@ function bootEditor() {
       recordStep({ type: "scale", value: v, unit });
       render();
     };
+    function rasterize(layer, mode) {
+      const sw = Math.max(1, Math.round(layer.sw)),
+        sh = Math.max(1, Math.round(layer.sh)),
+        src = document.createElement("canvas");
+      src.width = sw;
+      src.height = sh;
+      const sctx = src.getContext("2d");
+      sctx.imageSmoothingEnabled = false;
+      sctx.drawImage(layer.img, layer.sx, layer.sy, layer.sw, layer.sh, 0, 0, sw, sh);
+      const out = document.createElement("canvas"),
+        swap = mode === "left" || mode === "right";
+      out.width = swap ? sh : sw;
+      out.height = swap ? sw : sh;
+      const octx = out.getContext("2d");
+      octx.imageSmoothingEnabled = false;
+      if (mode === "right") {
+        octx.translate(out.width, 0);
+        octx.rotate(Math.PI / 2);
+      } else if (mode === "left") {
+        octx.translate(0, out.height);
+        octx.rotate(-Math.PI / 2);
+      } else if (mode === "flip-h") {
+        octx.translate(out.width, 0);
+        octx.scale(-1, 1);
+      } else {
+        octx.translate(0, out.height);
+        octx.scale(1, -1);
+      }
+      octx.drawImage(src, 0, 0);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("transform"));
+        img.src = out.toDataURL("image/png");
+      });
+    }
+    function transformTargets() {
+      const chosen = layers.filter((l) => selected.has(l.id)),
+        targets = chosen.length ? chosen : active() ? [active()] : [];
+      if (!targets.length) {
+        say("Choose an image first.");
+        return null;
+      }
+      return targets;
+    }
+    function applyBitmap(layer, img, swap) {
+      const cx = layer.x + layer.w / 2,
+        cy = layer.y + layer.h / 2;
+      if (swap) [layer.w, layer.h] = [layer.h, layer.w];
+      layer.img = img;
+      layer.sx = 0;
+      layer.sy = 0;
+      layer.sw = img.naturalWidth;
+      layer.sh = img.naturalHeight;
+      layer.x = Math.round(cx - layer.w / 2);
+      layer.y = Math.round(cy - layer.h / 2);
+    }
+    async function transformSelected(mode) {
+      if (transforming) return;
+      const targets = transformTargets();
+      if (!targets) return;
+      transforming = true;
+      try {
+        const bitmaps = await Promise.all(targets.map((layer) => rasterize(layer, mode)));
+        const live = targets.map((layer, i) => [layer, bitmaps[i]]).filter(([layer]) => layers.includes(layer));
+        if (!live.length) return;
+        pushHistory();
+        const swap = mode === "left" || mode === "right";
+        for (const [layer, img] of live) applyBitmap(layer, img, swap);
+        render();
+      } catch {
+        say("Could not transform that image.");
+      } finally {
+        transforming = false;
+      }
+    }
+    $("#rotateLeftBtn").onclick = () => transformSelected("left");
+    $("#rotateRightBtn").onclick = () => transformSelected("right");
+    $("#flipHBtn").onclick = () => transformSelected("flip-h");
+    $("#flipVBtn").onclick = () => transformSelected("flip-v");
     function setLock(value) {
       lock = value;
       setIcon("#lockBtn", lock ? "lock" : "lock_open_right", lock ? "Unlock aspect ratio" : "Lock aspect ratio");
@@ -732,6 +821,41 @@ function bootEditor() {
       selected = new Set(layers.map((l) => l.id));
       drawList();
     };
+    function duplicateName(name) {
+      const match = /^(.*) copy(?: (\d+))?$/.exec(name);
+      if (!match) return `${name} copy`;
+      return `${match[1]} copy ${match[2] ? Number(match[2]) + 1 : 2}`;
+    }
+    $("#duplicateBtn").onclick = () => {
+      const group = layers.filter((l) => selected.has(l.id));
+      if (!group.length) {
+        say("Tap an image to select it. Tap a selected image again to remove it.");
+        return;
+      }
+      pushHistory();
+      const copies = group.map((l) => ({
+        id: ++idSeed,
+        img: l.img,
+        name: duplicateName(l.name),
+        sx: l.sx,
+        sy: l.sy,
+        sw: l.sw,
+        sh: l.sh,
+        w: l.w,
+        h: l.h,
+        x: l.x + 16,
+        y: l.y + 16,
+        opacity: l.opacity,
+        visible: l.visible,
+      }));
+      layers.push(...copies);
+      selected = new Set(copies.map((l) => l.id));
+      const last = copies.at(-1);
+      activeId = last.id;
+      topId = last.visible === false ? null : last.id;
+      drawList();
+      render();
+    };
     function refreshTemplates() {
       const select = $("#templateSelect"),
         previous = select.value;
@@ -885,12 +1009,26 @@ function bootEditor() {
         say("Clipboard access was blocked. Try downloading the PNG.");
       }
     };
+    function safePngName(name) {
+      let base = String(name ?? "")
+        .replace(/\.[^./\\]+$/, "")
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "")
+        .trim()
+        .replace(/^[.]+|[. ]+$/g, "");
+      if (!base) base = "image";
+      return `${base}.png`;
+    }
+    function downloadFilename() {
+      if (!layers.length) return "image-editor.png";
+      const layer = active() || (layers.length === 1 ? layers[0] : null) || layers.find((l) => selected.has(l.id)) || layers[0];
+      return safePngName(layer.name);
+    }
     $("#downloadBtn").onclick = async () => {
       const b = await blob();
       if (!b) return;
       const a = document.createElement("a");
       a.href = URL.createObjectURL(b);
-      a.download = "image-editor.png";
+      a.download = downloadFilename();
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };

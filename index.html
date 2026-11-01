@@ -41,6 +41,18 @@
           <span class="material-symbols outlined" aria-hidden="true">pan_tool</span>
         </button>
       </div>
+      <div class="tool-group" role="group" aria-labelledby="canvasLabel">
+        <span class="tool-group-label" id="canvasLabel">Canvas</span
+        ><button class="button icon-only" id="fitImageBtn" type="button" title="Fit canvas to image" aria-label="Fit canvas to image">
+          <span class="material-symbols outlined" aria-hidden="true">zoom_out_map</span></button
+        ><input id="canvasW" type="number" min="1" value="500" aria-label="Canvas width" /><span class="unit">px</span
+        ><button class="button icon-only" id="lockBtn" type="button" title="Unlock aspect ratio" aria-label="Unlock aspect ratio">
+          <span class="material-symbols outlined" aria-hidden="true">lock</span></button
+        ><input id="canvasH" type="number" min="1" value="500" aria-label="Canvas height" /><span class="unit">px</span
+        ><button class="button icon-only" id="resizeBtn" type="button" title="Apply canvas size" aria-label="Apply canvas size">
+          <span class="material-symbols outlined" aria-hidden="true">check</span>
+        </button>
+      </div>
       <div class="tool-group" role="group" aria-labelledby="cropLabel">
         <span class="tool-group-label" id="cropLabel">Crop</span
         ><input id="cropAmount" type="number" min="0" value="0" aria-label="Crop amount in pixels" title="Crop amount (C)" /><span class="unit">px</span
@@ -54,28 +66,16 @@
           <span class="material-symbols outlined" aria-hidden="true">arrow_downward</span>
         </button>
       </div>
-      <div class="tool-group" role="group" aria-labelledby="scaleLabel">
-        <span class="tool-group-label" id="scaleLabel">Scale</span><input id="scaleValue" type="number" min="1" value="100" aria-label="Scale value" /><select
-          id="scaleUnit"
-          class="select"
-          aria-label="Scale unit"
-        >
-          <option value="percent">%</option>
-          <option value="pixels">px width</option></select
-        ><button class="button icon-only" id="scaleBtn" type="button" title="Apply scale" aria-label="Apply scale">
-          <span class="material-symbols outlined" aria-hidden="true">check</span>
-        </button>
-      </div>
-      <div class="tool-group" role="group" aria-labelledby="canvasLabel">
-        <span class="tool-group-label" id="canvasLabel">Canvas</span
-        ><button class="button icon-only" id="fitImageBtn" type="button" title="Fit canvas to image" aria-label="Fit canvas to image">
-          <span class="material-symbols outlined" aria-hidden="true">zoom_out_map</span></button
-        ><input id="canvasW" type="number" min="1" value="500" aria-label="Canvas width" /><span class="unit">px</span
-        ><button class="button icon-only" id="lockBtn" type="button" title="Unlock aspect ratio" aria-label="Unlock aspect ratio">
-          <span class="material-symbols outlined" aria-hidden="true">lock</span></button
-        ><input id="canvasH" type="number" min="1" value="500" aria-label="Canvas height" /><span class="unit">px</span
-        ><button class="button icon-only" id="resizeBtn" type="button" title="Apply canvas size" aria-label="Apply canvas size">
-          <span class="material-symbols outlined" aria-hidden="true">check</span>
+      <div class="tool-group" role="group" aria-labelledby="edgeLabel">
+        <span class="tool-group-label" id="edgeLabel">Shift to edge</span
+        ><button class="button icon-only" type="button" data-edge="left" title="Move to left edge" aria-label="Move to left edge">
+          <span class="material-symbols outlined" aria-hidden="true">horizontal_align_left</span></button
+        ><button class="button icon-only" type="button" data-edge="right" title="Move to right edge" aria-label="Move to right edge">
+          <span class="material-symbols outlined" aria-hidden="true">horizontal_align_right</span></button
+        ><button class="button icon-only" type="button" data-edge="top" title="Move to top edge" aria-label="Move to top edge">
+          <span class="material-symbols outlined" aria-hidden="true">vertical_align_top</span></button
+        ><button class="button icon-only" type="button" data-edge="bottom" title="Move to bottom edge" aria-label="Move to bottom edge">
+          <span class="material-symbols outlined" aria-hidden="true">vertical_align_bottom</span>
         </button>
       </div>
       <div class="tool-group" role="group" aria-labelledby="alignLabel">
@@ -88,16 +88,28 @@
           <span class="material-symbols outlined" aria-hidden="true">vertical_align_center</span>
         </button>
       </div>
-      <div class="tool-group" role="group" aria-labelledby="edgeLabel">
-        <span class="tool-group-label" id="edgeLabel">Shift to edge</span
-        ><button class="button icon-only" type="button" data-edge="left" title="Move to left edge" aria-label="Move to left edge">
-          <span class="material-symbols outlined" aria-hidden="true">horizontal_align_left</span></button
-        ><button class="button icon-only" type="button" data-edge="right" title="Move to right edge" aria-label="Move to right edge">
-          <span class="material-symbols outlined" aria-hidden="true">horizontal_align_right</span></button
-        ><button class="button icon-only" type="button" data-edge="top" title="Move to top edge" aria-label="Move to top edge">
-          <span class="material-symbols outlined" aria-hidden="true">vertical_align_top</span></button
-        ><button class="button icon-only" type="button" data-edge="bottom" title="Move to bottom edge" aria-label="Move to bottom edge">
-          <span class="material-symbols outlined" aria-hidden="true">vertical_align_bottom</span>
+      <div class="tool-group" role="group" aria-labelledby="transformLabel">
+        <span class="tool-group-label" id="transformLabel">Transform</span
+        ><button class="button icon-only" id="rotateLeftBtn" type="button" title="Rotate left" aria-label="Rotate left">
+          <span class="material-symbols outlined" aria-hidden="true">rotate_left</span></button
+        ><button class="button icon-only" id="rotateRightBtn" type="button" title="Rotate right" aria-label="Rotate right">
+          <span class="material-symbols outlined" aria-hidden="true">rotate_right</span></button
+        ><button class="button icon-only" id="flipHBtn" type="button" title="Flip horizontal" aria-label="Flip horizontal">
+          <span class="material-symbols outlined" aria-hidden="true">flip</span></button
+        ><button class="button icon-only" id="flipVBtn" type="button" title="Flip vertical" aria-label="Flip vertical">
+          <span class="material-symbols outlined flip-vertical" aria-hidden="true">flip</span>
+        </button>
+      </div>
+      <div class="tool-group" role="group" aria-labelledby="scaleLabel">
+        <span class="tool-group-label" id="scaleLabel">Scale</span><input id="scaleValue" type="number" min="1" value="100" aria-label="Scale value" /><select
+          id="scaleUnit"
+          class="select"
+          aria-label="Scale unit"
+        >
+          <option value="percent">%</option>
+          <option value="pixels">px width</option></select
+        ><button class="button icon-only" id="scaleBtn" type="button" title="Apply scale" aria-label="Apply scale">
+          <span class="material-symbols outlined" aria-hidden="true">check</span>
         </button>
       </div>
       <div class="tool-group" role="group" aria-labelledby="templatesLabel">
@@ -156,6 +168,9 @@
         <div class="images-panel-actions">
           <button class="button icon-only" id="selectAll" type="button" title="Select all" aria-label="Select all">
             <span class="material-symbols outlined" aria-hidden="true">grid_view</span>
+          </button>
+          <button class="button icon-only" id="duplicateBtn" type="button" title="Duplicate selected images" aria-label="Duplicate selected images">
+            <span class="material-symbols outlined" aria-hidden="true">file_copy</span>
           </button>
           <hr class="divider" aria-orientation="vertical" />
           <button class="button icon-only" id="mergeH" type="button" title="Merge horizontally" aria-label="Merge horizontally">
