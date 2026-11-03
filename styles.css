@@ -547,7 +547,6 @@ select.select {
 
   .tool-group-label {
     margin-right: 2px;
-    display: none;
     font-size: 11px;
     font-weight: 750;
     letter-spacing: 0.08em;
@@ -800,10 +799,6 @@ select.select {
 
   .tool-group {
     padding-right: 7px;
-  }
-
-  .tool-group-label {
-    display: revert;
   }
 
   .toolbar #templateSelect {
