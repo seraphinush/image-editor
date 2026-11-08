@@ -987,14 +987,7 @@ function bootEditor() {
     };
     refreshTemplates();
     async function blob() {
-      const exportCanvas = document.createElement("canvas");
-      exportCanvas.width = canvas.width;
-      exportCanvas.height = canvas.height;
-      const exportCtx = exportCanvas.getContext("2d");
-      exportCtx.fillStyle = "#fff";
-      exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-      exportCtx.drawImage(canvas, 0, 0);
-      return new Promise((resolve) => exportCanvas.toBlob(resolve, "image/png"));
+      return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
     }
     $("#copyBtn").onclick = async () => {
       if (!layers.length) {
