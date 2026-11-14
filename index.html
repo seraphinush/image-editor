@@ -53,6 +53,15 @@
           <span class="material-symbols outlined" aria-hidden="true">check</span>
         </button>
       </div>
+      <div class="tool-group" role="group" aria-labelledby="ratioLabel">
+        <span class="tool-group-label" id="ratioLabel">Ratio</span
+        ><button class="button ratio-preset" type="button" data-ratio-w="1" data-ratio-h="1" aria-pressed="false" title="Fit the image inside a 1:1 canvas">1:1</button
+        ><button class="button ratio-preset" type="button" data-ratio-w="4" data-ratio-h="3" aria-pressed="false" title="Fit the image inside a 4:3 canvas">4:3</button
+        ><button class="button ratio-preset" type="button" data-ratio-w="16" data-ratio-h="9" aria-pressed="false" title="Fit the image inside a 16:9 canvas">16:9</button
+        ><button class="button icon-only" id="invertRatioBtn" type="button" title="Invert aspect ratio" aria-label="Invert aspect ratio">
+          <span class="material-symbols outlined" aria-hidden="true">screen_rotation</span>
+        </button>
+      </div>
       <div class="tool-group" role="group" aria-labelledby="cropLabel">
         <span class="tool-group-label" id="cropLabel">Crop</span
         ><input id="cropAmount" type="number" min="0" value="0" aria-label="Crop amount in pixels" title="Crop amount (C)" /><span class="unit">px</span

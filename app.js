@@ -264,6 +264,7 @@ function bootEditor() {
         canvas.dataset.fitH = String(canvas.height);
         fitCanvas();
       } else drawOverflow();
+      syncRatioPresets();
       if (options.skipThumbs) return;
       for (const l of layers) {
         const c = l.thumb;
@@ -718,10 +719,13 @@ function bootEditor() {
       canvas.height = h;
       render();
     };
-    $("#fitImageBtn").onclick = () => {
+    function fitTargets() {
       const chosen = layers.filter((l) => selected.has(l.id)),
-        visible = layers.filter((l) => l.visible !== false),
-        use = chosen.length ? chosen : visible.length ? visible : layers;
+        visible = layers.filter((l) => l.visible !== false);
+      return chosen.length ? chosen : visible.length ? visible : layers;
+    }
+    $("#fitImageBtn").onclick = () => {
+      const use = fitTargets();
       if (!use.length) {
         say("Add an image first.");
         return;
@@ -746,6 +750,89 @@ function bootEditor() {
       canvas.width = Math.max(1, Math.round(maxX - minX));
       canvas.height = Math.max(1, Math.round(maxY - minY));
       render();
+    };
+    function ratiosMatch(width, height, ratioW, ratioH) {
+      if (width < 1 || height < 1 || ratioW < 1 || ratioH < 1) return false;
+      return Math.abs(width * ratioH - height * ratioW) <= Math.max(ratioW, ratioH);
+    }
+    function knownRatio(width, height) {
+      const known = [
+        [1, 1, "1:1"],
+        [4, 3, "4:3"],
+        [3, 4, "3:4"],
+        [16, 9, "16:9"],
+        [9, 16, "9:16"],
+      ];
+      return known.find(([w, h]) => ratiosMatch(width, height, w, h)) || null;
+    }
+    function ratioLabel(width, height) {
+      return knownRatio(width, height)?.[2] || "";
+    }
+    function syncRatioPresets() {
+      for (const button of document.querySelectorAll(".ratio-preset")) {
+        const on = ratiosMatch(canvas.width, canvas.height, +button.dataset.ratioW, +button.dataset.ratioH);
+        button.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+    }
+    function canvasSizeForRatio(contentW, contentH, ratioW, ratioH) {
+      const cw = Math.max(1, contentW),
+        ch = Math.max(1, contentH);
+      if (cw * ratioH >= ch * ratioW) {
+        const w = Math.ceil(cw);
+        return { w, h: Math.max(Math.ceil(ch), Math.ceil((w * ratioH) / ratioW)) };
+      }
+      const h = Math.ceil(ch);
+      return { w: Math.max(Math.ceil(cw), Math.ceil((h * ratioW) / ratioH)), h };
+    }
+    function applyCanvasRatio(ratioW, ratioH) {
+      const use = fitTargets();
+      if (!use.length) {
+        say("Add an image first.");
+        syncRatioPresets();
+        return;
+      }
+      if (!(ratioW > 0) || !(ratioH > 0)) return;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      for (const l of use) {
+        minX = Math.min(minX, l.x);
+        minY = Math.min(minY, l.y);
+        maxX = Math.max(maxX, l.x + l.w);
+        maxY = Math.max(maxY, l.y + l.h);
+      }
+      const left = Math.floor(minX),
+        top = Math.floor(minY),
+        contentW = Math.max(1, Math.ceil(maxX) - left),
+        contentH = Math.max(1, Math.ceil(maxY) - top),
+        size = canvasSizeForRatio(contentW, contentH, ratioW, ratioH),
+        padX = Math.floor((size.w - contentW) / 2),
+        padY = Math.floor((size.h - contentH) / 2),
+        shiftX = left - padX,
+        shiftY = top - padY;
+      if (canvas.width === size.w && canvas.height === size.h && shiftX === 0 && shiftY === 0) {
+        syncRatioPresets();
+        return;
+      }
+      pushHistory();
+      for (const l of layers) {
+        l.x -= shiftX;
+        l.y -= shiftY;
+      }
+      canvas.width = size.w;
+      canvas.height = size.h;
+      render();
+      const label = ratioLabel(size.w, size.h);
+      say(label ? `Canvas ${size.w} × ${size.h} (${label})` : `Canvas ${size.w} × ${size.h}`);
+    }
+    document.querySelectorAll(".ratio-preset").forEach((button) => {
+      button.addEventListener("click", () => applyCanvasRatio(+button.dataset.ratioW, +button.dataset.ratioH));
+    });
+    $("#invertRatioBtn").onclick = () => {
+      const known = knownRatio(canvas.width, canvas.height);
+      if (known) applyCanvasRatio(known[1], known[0]);
+      else applyCanvasRatio(canvas.height, canvas.width);
     };
     document.querySelectorAll("[data-align]").forEach(
       (b) =>

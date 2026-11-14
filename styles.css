@@ -143,6 +143,47 @@ select.select {
   accent-color: var(--color-accent);
 }
 
+.button.ratio-preset {
+  padding-block: 0;
+  padding-inline: 8px;
+  inline-size: auto;
+  min-inline-size: 44px;
+  block-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+
+.toolbar .ratio-preset[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  font-weight: 700;
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+}
+
+.toolbar .ratio-preset[aria-pressed="true"]:hover {
+  border-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
+}
+
+@media (pointer: coarse) {
+  .button.ratio-preset,
+  #invertRatioBtn {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  #invertRatioBtn {
+    inline-size: 44px;
+    block-size: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .toolbar .ratio-preset[aria-pressed="true"] {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+
 .unit {
   font-size: 11px;
   color: var(--color-text-muted);
