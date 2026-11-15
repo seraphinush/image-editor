@@ -896,9 +896,10 @@ function bootEditor() {
       trigger.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) return;
         fromPointer = true;
+        event.preventDefault();
       });
       trigger.addEventListener("click", (event) => {
-        if (event.detail === 0) enterOnOpen.add(popover);
+        if (event.detail === 0 && !fromPointer) enterOnOpen.add(popover);
       });
       trigger.addEventListener("keydown", (event) => {
         if (!onOpen || event.key !== "ArrowDown" || event.altKey || event.ctrlKey || event.metaKey) return;

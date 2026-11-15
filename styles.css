@@ -169,7 +169,8 @@ select.select {
   border-block-start: 4px solid currentColor;
 }
 
-.toolbar .menu-trigger[aria-expanded="true"] {
+.toolbar .menu-trigger[aria-expanded="true"],
+.toolbar .menu-trigger:focus-visible {
   border-color: var(--color-accent);
   background: var(--color-button-background-hover);
 }
