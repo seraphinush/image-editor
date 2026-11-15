@@ -259,6 +259,7 @@ function bootEditor() {
       $("#clearBtn").disabled = !layers.length && canvas.width === 500 && canvas.height === 500;
       $("#canvasW").value = canvas.width;
       $("#canvasH").value = canvas.height;
+      syncRatioPresets();
       if (canvas.dataset.fitW !== String(canvas.width) || canvas.dataset.fitH !== String(canvas.height)) {
         canvas.dataset.fitW = String(canvas.width);
         canvas.dataset.fitH = String(canvas.height);
@@ -718,10 +719,13 @@ function bootEditor() {
       canvas.height = h;
       render();
     };
-    $("#fitImageBtn").onclick = () => {
+    function fitTargets() {
       const chosen = layers.filter((l) => selected.has(l.id)),
-        visible = layers.filter((l) => l.visible !== false),
-        use = chosen.length ? chosen : visible.length ? visible : layers;
+        visible = layers.filter((l) => l.visible !== false);
+      return chosen.length ? chosen : visible.length ? visible : layers;
+    }
+    $("#fitImageBtn").onclick = () => {
+      const use = fitTargets();
       if (!use.length) {
         say("Add an image first.");
         return;
@@ -747,6 +751,272 @@ function bootEditor() {
       canvas.height = Math.max(1, Math.round(maxY - minY));
       render();
     };
+    function ratiosMatch(width, height, ratioW, ratioH) {
+      if (width < 1 || height < 1 || ratioW < 1 || ratioH < 1) return false;
+      return Math.abs(width * ratioH - height * ratioW) <= Math.max(ratioW, ratioH);
+    }
+    function knownRatio(width, height) {
+      const known = [
+        [1, 1, "1:1"],
+        [4, 3, "4:3"],
+        [3, 4, "3:4"],
+        [16, 9, "16:9"],
+        [9, 16, "9:16"],
+      ];
+      return known.find(([w, h]) => ratiosMatch(width, height, w, h)) || null;
+    }
+    function ratioLabel(width, height) {
+      return knownRatio(width, height)?.[2] || "";
+    }
+    function syncRatioPresets() {
+      const text = ratioLabel(canvas.width, canvas.height) || "Custom";
+      const current = $("#ratioCurrent");
+      if (current) current.textContent = text;
+      const trigger = $("#ratioBtn");
+      if (trigger) {
+        const name = `Canvas ratio ${text}`;
+        trigger.title = name;
+        trigger.setAttribute("aria-label", name);
+      }
+      for (const button of document.querySelectorAll(".ratio-preset")) {
+        const on = ratiosMatch(canvas.width, canvas.height, +button.dataset.ratioW, +button.dataset.ratioH);
+        button.setAttribute("aria-checked", on ? "true" : "false");
+      }
+    }
+    function canvasSizeForRatio(contentW, contentH, ratioW, ratioH) {
+      const cw = Math.max(1, contentW),
+        ch = Math.max(1, contentH);
+      if (cw * ratioH >= ch * ratioW) {
+        const h = Math.floor(ch);
+        return { w: Math.max(1, Math.floor((h * ratioW) / ratioH)), h };
+      }
+      const w = Math.floor(cw);
+      return { w, h: Math.max(1, Math.floor((w * ratioH) / ratioW)) };
+    }
+    function applyCanvasRatio(ratioW, ratioH) {
+      const use = fitTargets();
+      if (!use.length) {
+        say("Add an image first.");
+        syncRatioPresets();
+        return;
+      }
+      if (!(ratioW > 0) || !(ratioH > 0)) return;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      for (const l of use) {
+        minX = Math.min(minX, l.x);
+        minY = Math.min(minY, l.y);
+        maxX = Math.max(maxX, l.x + l.w);
+        maxY = Math.max(maxY, l.y + l.h);
+      }
+      const left = Math.floor(minX),
+        top = Math.floor(minY),
+        contentW = Math.max(1, Math.ceil(maxX) - left),
+        contentH = Math.max(1, Math.ceil(maxY) - top),
+        size = canvasSizeForRatio(contentW, contentH, ratioW, ratioH),
+        padX = Math.floor((size.w - contentW) / 2),
+        padY = Math.floor((size.h - contentH) / 2),
+        shiftX = left - padX,
+        shiftY = top - padY;
+      if (canvas.width === size.w && canvas.height === size.h && shiftX === 0 && shiftY === 0) {
+        syncRatioPresets();
+        return;
+      }
+      pushHistory();
+      for (const l of layers) {
+        l.x -= shiftX;
+        l.y -= shiftY;
+      }
+      canvas.width = size.w;
+      canvas.height = size.h;
+      render();
+      const label = ratioLabel(size.w, size.h);
+      say(label ? `Canvas ${size.w} × ${size.h} (${label})` : `Canvas ${size.w} × ${size.h}`);
+    }
+    document.querySelectorAll(".ratio-preset").forEach((button) => {
+      button.addEventListener("click", () => applyCanvasRatio(+button.dataset.ratioW, +button.dataset.ratioH));
+    });
+    $("#invertRatioBtn").onclick = () => {
+      const known = knownRatio(canvas.width, canvas.height);
+      if (known) applyCanvasRatio(known[1], known[0]);
+      else applyCanvasRatio(canvas.height, canvas.width);
+    };
+    function isPopoverOpen(popover) {
+      if (!popover) return false;
+      if (popover.classList.contains(":popover-open")) return true;
+      try {
+        return popover.matches(":popover-open");
+      } catch {
+        return false;
+      }
+    }
+    function showPopoverFrom(popover, trigger) {
+      try {
+        popover.showPopover({ source: trigger });
+      } catch {
+        popover.showPopover();
+      }
+    }
+    function placeAnchoredPopover(popover, trigger) {
+      if (window.CSS?.supports?.("position-area", "block-end")) return;
+      const gap = 6,
+        margin = 8,
+        triggerRect = trigger.getBoundingClientRect(),
+        width = popover.offsetWidth,
+        height = popover.offsetHeight;
+      if (!width || !height) return;
+      const vw = document.documentElement.clientWidth,
+        vh = window.innerHeight;
+      let top = triggerRect.bottom + gap;
+      if (top + height > vh - margin && triggerRect.top - gap - height >= margin) top = triggerRect.top - gap - height;
+      let left = triggerRect.left;
+      if (left + width > vw - margin) left = triggerRect.right - width;
+      popover.style.left = `${Math.round(Math.max(margin, Math.min(left, vw - width - margin)))}px`;
+      popover.style.top = `${Math.round(Math.max(margin, Math.min(top, vh - height - margin)))}px`;
+    }
+    function menuItems(group) {
+      return [...group.querySelectorAll("button")].filter((item) => item.closest("[focusgroup]") === group && !item.disabled && item.getAttribute("aria-disabled") !== "true");
+    }
+    function bindPopover(trigger, popover, onOpen) {
+      if (!trigger || !popover || typeof popover.showPopover !== "function") return;
+      const enterOnOpen = new WeakSet();
+      let fromPointer = false,
+        holdDismiss = 0;
+      const focusTrigger = (visible) => {
+        holdDismiss += 1;
+        try {
+          if (!visible && document.activeElement === trigger) trigger.blur();
+          trigger.focus({ focusVisible: visible });
+        } finally {
+          holdDismiss -= 1;
+        }
+      };
+      trigger.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        fromPointer = true;
+      });
+      trigger.addEventListener("click", (event) => {
+        if (event.detail === 0) enterOnOpen.add(popover);
+      });
+      trigger.addEventListener("keydown", (event) => {
+        if (!onOpen || event.key !== "ArrowDown" || event.altKey || event.ctrlKey || event.metaKey) return;
+        event.preventDefault();
+        if (!isPopoverOpen(popover)) {
+          enterOnOpen.add(popover);
+          trigger.click();
+          return;
+        }
+        onOpen("first");
+      });
+      popover.addEventListener("toggle", (event) => {
+        const open = event.newState ? event.newState === "open" : isPopoverOpen(popover);
+        trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        if (!open) {
+          enterOnOpen.delete(popover);
+          fromPointer = false;
+          return;
+        }
+        placeAnchoredPopover(popover, trigger);
+        if (enterOnOpen.has(popover)) {
+          enterOnOpen.delete(popover);
+          onOpen?.("first");
+        } else if (fromPointer) focusTrigger(false);
+        fromPointer = false;
+      });
+      if (!("commandForElement" in HTMLButtonElement.prototype)) {
+        trigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          if (isPopoverOpen(popover)) {
+            focusTrigger(event.detail === 0);
+            popover.hidePopover();
+            return;
+          }
+          if (event.detail === 0) enterOnOpen.add(popover);
+          showPopoverFrom(popover, trigger);
+        });
+      }
+      document.addEventListener("focusin", (event) => {
+        if (holdDismiss || !isPopoverOpen(popover)) return;
+        if (event.target === trigger || popover.contains(event.target)) return;
+        popover.hidePopover();
+      });
+    }
+    function bindRatioMenu() {
+      const trigger = $("#ratioBtn"),
+        menu = $("#ratioMenu"),
+        group = menu?.querySelector("[focusgroup]");
+      if (!trigger || !menu || !group) return;
+      const focusItem = (which) => {
+        const list = menuItems(group);
+        (which === "last" ? list.at(-1) : list[0])?.focus();
+      };
+      bindPopover(trigger, menu, focusItem);
+      group.addEventListener("pointermove", (event) => {
+        const item = event.target.closest?.("button");
+        if (!item || item.closest("[focusgroup]") !== group || document.activeElement === item) return;
+        item.focus({ focusVisible: false });
+      });
+      group.addEventListener("keydown", (event) => {
+        const list = menuItems(group);
+        if (event.key === "Home" || event.key === "End") {
+          event.preventDefault();
+          (event.key === "Home" ? list[0] : list.at(-1))?.focus();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          trigger.focus();
+          if (isPopoverOpen(menu)) menu.hidePopover();
+        }
+      });
+      group.addEventListener("click", (event) => {
+        const item = event.target.closest("button");
+        if (!item || item.closest("[focusgroup]") !== group) return;
+        const fromPointerClick = event.detail !== 0;
+        window.setTimeout(() => {
+          if (document.activeElement === item || menu.contains(document.activeElement)) trigger.focus({ focusVisible: !fromPointerClick });
+          if (isPopoverOpen(menu)) menu.hidePopover();
+        }, 300);
+      });
+      if (!("focusGroup" in HTMLElement.prototype)) {
+        group.setAttribute("role", "menu");
+        for (const item of menuItems(group)) item.tabIndex = -1;
+        group.addEventListener(
+          "keydown",
+          (event) => {
+            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+            const list = menuItems(group),
+              current = list.indexOf(document.activeElement);
+            if (current < 0) return;
+            const next = event.key === "Home" ? 0 : event.key === "End" ? list.length - 1 : (current + (event.key === "ArrowUp" ? -1 : 1) + list.length) % list.length;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            list[next].focus({ preventScroll: true });
+          },
+          true,
+        );
+      }
+    }
+    bindRatioMenu();
+    document.querySelector(".toolbar")?.addEventListener(
+      "scroll",
+      () => {
+        const menu = $("#ratioMenu"),
+          trigger = $("#ratioBtn");
+        if (!menu || !trigger || !isPopoverOpen(menu)) return;
+        const bar = trigger.closest(".toolbar")?.getBoundingClientRect(),
+          rect = trigger.getBoundingClientRect();
+        if (bar && (rect.right < bar.left || rect.left > bar.right)) menu.hidePopover();
+        else placeAnchoredPopover(menu, trigger);
+      },
+      { passive: true },
+    );
+    window.addEventListener("resize", () => {
+      const menu = $("#ratioMenu"),
+        trigger = $("#ratioBtn");
+      if (menu && trigger && isPopoverOpen(menu)) placeAnchoredPopover(menu, trigger);
+    });
     document.querySelectorAll("[data-align]").forEach(
       (b) =>
         (b.onclick = () => {

@@ -7,6 +7,16 @@
     <title>Image Editor</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" />
     <script src="app.js"></script>
+    <script type="module">
+      try {
+        if (!Object.hasOwn(HTMLElement.prototype, "popover")) {
+          await import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js");
+        }
+        if (!("commandForElement" in HTMLButtonElement.prototype)) {
+          await import("https://esm.run/invokers-polyfill");
+        }
+      } catch {}
+    </script>
     <link rel="stylesheet" href="design.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -50,7 +60,36 @@
           <span class="material-symbols outlined" aria-hidden="true">lock</span></button
         ><input id="canvasH" type="number" min="1" value="500" aria-label="Canvas height" /><span class="unit">px</span
         ><button class="button icon-only" id="resizeBtn" type="button" title="Apply canvas size" aria-label="Apply canvas size">
-          <span class="material-symbols outlined" aria-hidden="true">check</span>
+          <span class="material-symbols outlined" aria-hidden="true">check</span></button
+        ><button
+          class="button menu-trigger ratio-trigger"
+          id="ratioBtn"
+          type="button"
+          title="Canvas ratio 1:1"
+          aria-label="Canvas ratio 1:1"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          commandfor="ratioMenu"
+          command="toggle-popover"
+        >
+          <span id="ratioCurrent">1:1</span></button
+        ><div id="ratioMenu" popover="auto" class="tool-menu">
+          <div focusgroup="menu nomemory" aria-labelledby="ratioBtn">
+            <div role="group" aria-label="Canvas ratios">
+              <button type="button" class="ratio-preset" role="menuitemradio" aria-checked="true" data-ratio-w="1" data-ratio-h="1" title="Crop the canvas to 1:1 around the image">
+                1:1
+              </button>
+              <button type="button" class="ratio-preset" role="menuitemradio" aria-checked="false" data-ratio-w="4" data-ratio-h="3" title="Crop the canvas to 4:3 around the image">
+                4:3
+              </button>
+              <button type="button" class="ratio-preset" role="menuitemradio" aria-checked="false" data-ratio-w="16" data-ratio-h="9" title="Crop the canvas to 16:9 around the image">
+                16:9
+              </button>
+            </div>
+          </div>
+        </div>
+        <button class="button icon-only" id="invertRatioBtn" type="button" title="Invert aspect ratio" aria-label="Invert aspect ratio">
+          <span class="material-symbols outlined flip-vertical" aria-hidden="true">sync</span>
         </button>
       </div>
       <div class="tool-group" role="group" aria-labelledby="cropLabel">
