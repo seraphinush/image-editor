@@ -139,6 +139,30 @@ select.select {
   cursor: not-allowed;
 }
 
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes reveal-fade-start {
+  to {
+    --fade-start: var(--fade-size);
+  }
+}
+
+@keyframes hide-fade-end {
+  from {
+    --fade-end: var(--fade-size);
+  }
+}
+
 .toolbar input[type="checkbox"] {
   accent-color: var(--color-accent);
 }
@@ -170,7 +194,8 @@ select.select {
 }
 
 .toolbar .menu-trigger[aria-expanded="true"],
-.toolbar .menu-trigger:focus-visible {
+.toolbar .menu-trigger:focus-visible,
+.toolbar > #moreBtn[aria-expanded="true"] {
   border-color: var(--color-accent);
   background: var(--color-button-background-hover);
 }
@@ -186,6 +211,40 @@ select.select {
 
 .tool-menu:is(:popover-open, .\:popover-open) {
   display: block;
+}
+
+.more-panel:is(:popover-open, .\:popover-open) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 12px;
+  max-inline-size: min(40rem, calc(100vw - 16px));
+  max-block-size: min(70dvh, 28rem);
+  overflow: auto;
+}
+
+.more-panel .tool-group {
+  margin-right: 0;
+  border-right: 0;
+  border-bottom: 1px solid var(--color-tool-line);
+  padding-right: 0;
+  padding-bottom: 8px;
+}
+
+.more-panel .tool-group:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.more-panel #templateSelect {
+  width: 11rem;
+  max-width: 46vw;
+}
+
+.toolbar > #moreBtn {
+  flex: none;
+  margin-inline-start: 4px;
 }
 
 .tool-menu {
@@ -257,6 +316,10 @@ select.select {
     margin-block: 6px;
     margin-inline: 0;
   }
+
+  .more-panel {
+    position-area: block-end span-inline-start;
+  }
 }
 
 @supports not (position-area: block-end) {
@@ -299,6 +362,9 @@ select.select {
 }
 
 @media (pointer: coarse) {
+  .toolbar .button.icon-only,
+  .toolbar input,
+  .toolbar select,
   .menu-trigger,
   #invertRatioBtn,
   .tool-menu [focusgroup] > button,
@@ -307,8 +373,11 @@ select.select {
     min-block-size: 44px;
   }
 
+  .toolbar .button.icon-only,
   .menu-trigger,
   #invertRatioBtn {
+    width: 44px;
+    height: 44px;
     block-size: 44px;
   }
 }
@@ -346,15 +415,6 @@ select.select {
   flex: 0 0 auto;
   line-height: 0;
   background-color: var(--color-checker-base);
-  background-image:
-    linear-gradient(45deg, var(--color-checker) 25%, transparent 25%), linear-gradient(-45deg, var(--color-checker) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--color-checker) 75%), linear-gradient(-45deg, transparent 75%, var(--color-checker) 75%);
-  background-position:
-    0 0,
-    0 10px,
-    10px -10px,
-    -10px 0;
-  background-size: 20px 20px;
   box-shadow: var(--shadow-stage);
   outline: 1px solid var(--color-canvas-border);
 }
@@ -702,16 +762,63 @@ select.select {
     padding: 8px 20px;
     display: flex;
     gap: 4px;
-    overflow-x: auto;
     align-items: center;
     background: var(--color-background);
+  }
+
+  .toolbar-scroller {
+    flex: 1;
+    min-inline-size: 0;
+    display: flex;
+    gap: inherit;
+    align-items: center;
+    overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    scroll-snap-type: inline proximity;
+    scroll-padding-inline: 2rem;
+    --fade-size: 2rem;
+    --fade-dir: right;
+    --fade-start-pos: 0;
+    --fade-end-pos: 100%;
+    mask:
+      linear-gradient(black, black) no-clip subtract,
+      linear-gradient(to var(--fade-dir), black, transparent) var(--fade-start-pos) 0 / var(--fade-start) 100% no-repeat no-clip,
+      linear-gradient(to var(--fade-dir), transparent, black) var(--fade-end-pos) 0 / var(--fade-end) 100% no-repeat no-clip;
+    animation: reveal-fade-start linear both, hide-fade-end linear both;
+    animation-timeline: scroll(self inline);
+    animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
   }
 
-  .toolbar::-webkit-scrollbar {
+  .toolbar-scroller:dir(rtl) {
+    --fade-dir: left;
+    --fade-start-pos: 100%;
+    --fade-end-pos: 0;
+  }
+
+  .toolbar-scroller::-webkit-scrollbar {
     display: none;
+  }
+
+  .toolbar-scroller > .tool-group {
+    scroll-snap-align: start;
+  }
+
+  .toolbar-sentinel {
+    flex: none;
+    inline-size: 1px;
+    block-size: 1px;
+  }
+
+  @supports not (animation-timeline: scroll()) {
+    .toolbar-scroller.more-start {
+      --fade-start: var(--fade-size);
+    }
+
+    .toolbar-scroller.more-end {
+      --fade-end: var(--fade-size);
+    }
   }
 
   .tool-group {
@@ -1043,18 +1150,22 @@ select.select {
     min-width: revert;
     gap: 7px;
     grid-column: 1 / -1;
+  }
+
+  .toolbar-scroller {
     scrollbar-color: var(--color-text-muted) transparent;
     scrollbar-width: thin;
+    scrollbar-gutter: stable;
     -webkit-overflow-scrolling: revert;
     overscroll-behavior-x: revert;
   }
 
-  .toolbar::-webkit-scrollbar {
+  .toolbar-scroller::-webkit-scrollbar {
     display: block;
     height: 8px;
   }
 
-  .toolbar::-webkit-scrollbar-thumb {
+  .toolbar-scroller::-webkit-scrollbar-thumb {
     background: var(--color-text-muted);
     border-radius: 8px;
   }
@@ -1073,6 +1184,11 @@ select.select {
   .toolbar #templateSelect {
     width: 132px;
     max-width: 132px;
+  }
+
+  .more-panel #templateSelect {
+    width: 11rem;
+    max-width: none;
   }
 
   /* Main */
@@ -1241,4 +1357,9 @@ select.select {
   .toast {
     bottom: 132px;
   }
+}
+
+.toolbar .more-panel #templateSelect {
+  width: 11rem;
+  max-width: none;
 }

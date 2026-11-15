@@ -45,6 +45,7 @@
       </div>
     </header>
     <nav class="toolbar" aria-label="Image tools">
+      <div class="toolbar-scroller">
       <div class="tool-group" role="group" aria-labelledby="toolLabel">
         <span class="tool-group-label" id="toolLabel">Tool</span
         ><button class="button icon-only" id="handBtn" type="button" title="Hand tool" aria-label="Hand tool" aria-pressed="true">
@@ -92,7 +93,7 @@
           <span class="material-symbols outlined flip-vertical" aria-hidden="true">sync</span>
         </button>
       </div>
-      <div class="tool-group" role="group" aria-labelledby="cropLabel">
+      <div class="tool-group" id="cropGroup" role="group" aria-labelledby="cropLabel">
         <span class="tool-group-label" id="cropLabel">Crop</span
         ><input id="cropAmount" type="number" min="0" value="0" aria-label="Crop amount in pixels" title="Crop amount (C)" /><span class="unit">px</span
         ><button class="button icon-only" type="button" data-crop="left" title="Crop from left" aria-label="Crop from left">
@@ -105,6 +106,43 @@
           <span class="material-symbols outlined" aria-hidden="true">arrow_downward</span>
         </button>
       </div>
+      <div class="tool-group" id="alignGroup" role="group" aria-labelledby="alignLabel">
+        <span class="tool-group-label" id="alignLabel">Align</span
+        ><button class="button icon-only" type="button" data-align="center" title="Recenter" aria-label="Recenter">
+          <span class="material-symbols outlined" aria-hidden="true">recenter</span></button
+        ><button class="button icon-only" type="button" data-align="horizontal" title="Center horizontally" aria-label="Center horizontally">
+          <span class="material-symbols outlined" aria-hidden="true">horizontal_align_center</span></button
+        ><button class="button icon-only" type="button" data-align="vertical" title="Center vertically" aria-label="Center vertically">
+          <span class="material-symbols outlined" aria-hidden="true">vertical_align_center</span>
+        </button>
+      </div>
+      <div class="tool-group" id="transformGroup" role="group" aria-labelledby="transformLabel">
+        <span class="tool-group-label" id="transformLabel">Transform</span
+        ><button class="button icon-only" id="rotateLeftBtn" type="button" title="Rotate left" aria-label="Rotate left">
+          <span class="material-symbols outlined" aria-hidden="true">rotate_left</span></button
+        ><button class="button icon-only" id="rotateRightBtn" type="button" title="Rotate right" aria-label="Rotate right">
+          <span class="material-symbols outlined" aria-hidden="true">rotate_right</span></button
+        ><button class="button icon-only" id="flipHBtn" type="button" title="Flip horizontal" aria-label="Flip horizontal">
+          <span class="material-symbols outlined" aria-hidden="true">flip</span></button
+        ><button class="button icon-only" id="flipVBtn" type="button" title="Flip vertical" aria-label="Flip vertical">
+          <span class="material-symbols outlined flip-vertical" aria-hidden="true">flip</span>
+        </button>
+      </div>
+      </div>
+      <button
+        class="button icon-only"
+        id="moreBtn"
+        type="button"
+        title="More actions"
+        aria-label="More actions"
+        aria-expanded="false"
+        aria-controls="morePanel"
+        commandfor="morePanel"
+        command="toggle-popover"
+      >
+        <span class="material-symbols outlined" aria-hidden="true">more_vert</span>
+      </button>
+      <div id="morePanel" popover="auto" class="tool-menu more-panel">
       <div class="tool-group" role="group" aria-labelledby="edgeLabel">
         <span class="tool-group-label" id="edgeLabel">Shift to edge</span
         ><button class="button icon-only" type="button" data-edge="left" title="Move to left edge" aria-label="Move to left edge">
@@ -115,28 +153,6 @@
           <span class="material-symbols outlined" aria-hidden="true">vertical_align_top</span></button
         ><button class="button icon-only" type="button" data-edge="bottom" title="Move to bottom edge" aria-label="Move to bottom edge">
           <span class="material-symbols outlined" aria-hidden="true">vertical_align_bottom</span>
-        </button>
-      </div>
-      <div class="tool-group" role="group" aria-labelledby="alignLabel">
-        <span class="tool-group-label" id="alignLabel">Align</span
-        ><button class="button icon-only" type="button" data-align="center" title="Recenter" aria-label="Recenter">
-          <span class="material-symbols outlined" aria-hidden="true">recenter</span></button
-        ><button class="button icon-only" type="button" data-align="horizontal" title="Center horizontally" aria-label="Center horizontally">
-          <span class="material-symbols outlined" aria-hidden="true">horizontal_align_center</span></button
-        ><button class="button icon-only" type="button" data-align="vertical" title="Center vertically" aria-label="Center vertically">
-          <span class="material-symbols outlined" aria-hidden="true">vertical_align_center</span>
-        </button>
-      </div>
-      <div class="tool-group" role="group" aria-labelledby="transformLabel">
-        <span class="tool-group-label" id="transformLabel">Transform</span
-        ><button class="button icon-only" id="rotateLeftBtn" type="button" title="Rotate left" aria-label="Rotate left">
-          <span class="material-symbols outlined" aria-hidden="true">rotate_left</span></button
-        ><button class="button icon-only" id="rotateRightBtn" type="button" title="Rotate right" aria-label="Rotate right">
-          <span class="material-symbols outlined" aria-hidden="true">rotate_right</span></button
-        ><button class="button icon-only" id="flipHBtn" type="button" title="Flip horizontal" aria-label="Flip horizontal">
-          <span class="material-symbols outlined" aria-hidden="true">flip</span></button
-        ><button class="button icon-only" id="flipVBtn" type="button" title="Flip vertical" aria-label="Flip vertical">
-          <span class="material-symbols outlined flip-vertical" aria-hidden="true">flip</span>
         </button>
       </div>
       <div class="tool-group" role="group" aria-labelledby="scaleLabel">
@@ -177,6 +193,7 @@
         ><button class="button icon-only" id="deleteTemplate" type="button" title="Delete selected template" aria-label="Delete selected template">
           <span class="material-symbols outlined" aria-hidden="true">delete</span>
         </button>
+      </div>
       </div>
     </nav>
     <main class="stage" id="stage">

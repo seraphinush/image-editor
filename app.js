@@ -1000,24 +1000,72 @@ function bootEditor() {
       }
     }
     bindRatioMenu();
-    document.querySelector(".toolbar")?.addEventListener(
-      "scroll",
-      () => {
-        const menu = $("#ratioMenu"),
-          trigger = $("#ratioBtn");
-        if (!menu || !trigger || !isPopoverOpen(menu)) return;
+    function placeOpenMenus() {
+      for (const menu of document.querySelectorAll(".tool-menu")) {
+        if (!isPopoverOpen(menu)) continue;
+        const trigger = document.querySelector(`[commandfor="${menu.id}"]`);
+        if (!trigger) continue;
         const bar = trigger.closest(".toolbar")?.getBoundingClientRect(),
           rect = trigger.getBoundingClientRect();
         if (bar && (rect.right < bar.left || rect.left > bar.right)) menu.hidePopover();
         else placeAnchoredPopover(menu, trigger);
-      },
-      { passive: true },
-    );
-    window.addEventListener("resize", () => {
-      const menu = $("#ratioMenu"),
-        trigger = $("#ratioBtn");
-      if (menu && trigger && isPopoverOpen(menu)) placeAnchoredPopover(menu, trigger);
-    });
+      }
+    }
+    document.querySelector(".toolbar-scroller")?.addEventListener("scroll", placeOpenMenus, { passive: true });
+    window.addEventListener("resize", placeOpenMenus);
+    function bindToolbarOverflow() {
+      const bar = document.querySelector(".toolbar-scroller"),
+        panel = $("#morePanel"),
+        transform = $("#transformGroup"),
+        order = [$("#cropGroup"), $("#alignGroup")].filter(Boolean);
+      if (!bar || !panel || !transform || !order.length) return;
+      const firstInPanel = () => panel.querySelector(":scope > .tool-group"),
+        placeInRow = (group) => {
+          const later = order.find((item) => item !== group && item.parentElement === bar && order.indexOf(item) > order.indexOf(group));
+          (later || transform).before(group);
+        },
+        fits = () => bar.scrollWidth <= bar.clientWidth + 1;
+      let fitting = false;
+      const fit = () => {
+        if (fitting) return;
+        fitting = true;
+        try {
+          for (const group of order) if (group.parentElement !== bar) placeInRow(group);
+          for (let i = order.length - 1; i >= 0 && !fits(); i--) panel.insertBefore(order[i], firstInPanel());
+          for (const group of order) {
+            if (group.parentElement === bar) continue;
+            const slot = group.nextElementSibling;
+            placeInRow(group);
+            if (!fits()) panel.insertBefore(group, slot);
+          }
+        } finally {
+          fitting = false;
+        }
+      };
+      new ResizeObserver(fit).observe(bar);
+      fit();
+      document.fonts?.ready?.then(fit);
+      bindPopover($("#moreBtn"), panel);
+      if (!CSS.supports("animation-timeline", "scroll()")) {
+        const start = document.createElement("span"),
+          end = document.createElement("span");
+        for (const sentinel of [start, end]) {
+          sentinel.className = "toolbar-sentinel";
+          sentinel.setAttribute("aria-hidden", "true");
+        }
+        bar.prepend(start);
+        bar.append(end);
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) bar.classList.toggle(entry.target === start ? "more-start" : "more-end", !entry.isIntersecting);
+          },
+          { root: bar, rootMargin: "1px" },
+        );
+        observer.observe(start);
+        observer.observe(end);
+      }
+    }
+    bindToolbarOverflow();
     document.querySelectorAll("[data-align]").forEach(
       (b) =>
         (b.onclick = () => {
