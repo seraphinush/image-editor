@@ -143,6 +143,215 @@ select.select {
   accent-color: var(--color-accent);
 }
 
+.menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  block-size: 30px;
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.ratio-trigger {
+  min-inline-size: 7.25rem;
+}
+
+.menu-trigger::after {
+  content: "";
+  flex: none;
+  inline-size: 0;
+  block-size: 0;
+  border-inline: 3.5px solid transparent;
+  border-block-start: 4px solid currentColor;
+}
+
+.toolbar .menu-trigger[aria-expanded="true"]:not(.is-recording) {
+  border-color: var(--color-accent);
+  background: var(--color-button-background-hover);
+}
+
+.toolbar .menu-trigger:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+[popover] {
+  display: none;
+}
+
+.tool-menu:is(:popover-open, .\:popover-open),
+.tool-panel:is(:popover-open, .\:popover-open) {
+  display: block;
+}
+
+.tool-menu,
+.tool-panel {
+  border: 1px solid var(--color-border);
+  padding: 6px;
+  width: max-content;
+  max-inline-size: min(22rem, calc(100vw - 16px));
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-stage);
+  white-space: normal;
+}
+
+.tool-menu {
+  padding: 4px;
+}
+
+.tool-menu [focusgroup] > button,
+.tool-menu [focusgroup] > [role="group"] > button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  padding: 6px 8px;
+  min-block-size: 32px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+  color: inherit;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool-menu [focusgroup],
+.tool-menu [focusgroup] > [role="group"] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 8.5rem;
+}
+
+.tool-menu [focusgroup] > button::before,
+.tool-menu [focusgroup] > [role="group"] > button::before {
+  content: "";
+  flex: none;
+  inline-size: 1.25rem;
+  text-align: center;
+}
+
+.tool-menu [focusgroup] > button[aria-checked="true"]::before,
+.tool-menu [focusgroup] > [role="group"] > button[aria-checked="true"]::before {
+  content: "✓";
+}
+
+.tool-menu [focusgroup] > button:hover,
+.tool-menu [focusgroup] > [role="group"] > button:hover {
+  background: var(--color-button-background-hover);
+}
+
+.tool-menu [focusgroup] > button:focus-visible,
+.tool-menu [focusgroup] > [role="group"] > button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.template-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.template-tools .tool-group-label {
+  flex-basis: 100%;
+}
+
+.toolbar .tool-panel #templateSelect {
+  flex: 1 1 12rem;
+  width: auto;
+  min-width: 12rem;
+  max-width: none;
+}
+
+@supports (position-area: block-end) {
+  .tool-menu,
+  .tool-panel {
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    inset: auto;
+    margin-block: 6px;
+    margin-inline: 0;
+  }
+}
+
+@supports not (position-area: block-end) {
+  .tool-menu,
+  .tool-panel {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+  }
+}
+
+.tool-menu:is(:popover-open, .\:popover-open),
+.tool-panel:is(:popover-open, .\:popover-open) {
+  opacity: 1;
+  translate: 0 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tool-menu,
+  .tool-panel {
+    opacity: 0;
+    translate: 0 -0.25rem;
+    transition:
+      opacity 0.15s,
+      translate 0.15s,
+      display 0.15s,
+      overlay 0.15s;
+    transition-behavior: allow-discrete;
+  }
+
+  .tool-menu:is(:popover-open, .\:popover-open),
+  .tool-panel:is(:popover-open, .\:popover-open) {
+    opacity: 1;
+    translate: 0 0;
+    transition-duration: 0.1s;
+  }
+}
+
+@starting-style {
+  .tool-menu:is(:popover-open, .\:popover-open),
+  .tool-panel:is(:popover-open, .\:popover-open) {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .menu-trigger,
+  #invertRatioBtn,
+  .tool-menu [focusgroup] > button,
+  .tool-menu [focusgroup] > [role="group"] > button,
+  .tool-panel .button {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .menu-trigger,
+  #invertRatioBtn {
+    block-size: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .tool-menu [focusgroup] > button[aria-checked="true"],
+  .tool-menu [focusgroup] > [role="group"] > button[aria-checked="true"],
+  .toolbar .menu-trigger[aria-expanded="true"] {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+
 .unit {
   font-size: 11px;
   color: var(--color-text-muted);
@@ -519,6 +728,10 @@ select.select {
   /* Nav */
 
   .toolbar {
+    --fade-size: 3.25rem;
+    --fade-dir: right;
+    --fade-start-pos: 0;
+    --fade-end-pos: 100%;
     border-bottom: 1px solid var(--color-line);
     padding: 8px 20px;
     display: flex;
@@ -526,9 +739,21 @@ select.select {
     overflow-x: auto;
     align-items: center;
     background: var(--color-background);
+    scroll-padding-inline: var(--fade-size);
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
+    mask-image: linear-gradient(to var(--fade-dir), transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+    -webkit-mask-image: linear-gradient(to var(--fade-dir), transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+    animation: reveal-fade-start 1s linear both, hide-fade-end 1s linear both;
+    animation-timeline: scroll(self inline);
+    animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+  }
+
+  .toolbar:dir(rtl) {
+    --fade-dir: left;
+    --fade-start-pos: 100%;
+    --fade-end-pos: 0;
   }
 
   .toolbar::-webkit-scrollbar {
@@ -1039,6 +1264,57 @@ select.select {
 
   .images-panel.is-collapsed .image-list {
     padding-block: 0;
+  }
+}
+
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes reveal-fade-start {
+  to {
+    --fade-start: var(--fade-size);
+  }
+}
+
+@keyframes hide-fade-end {
+  from {
+    --fade-end: var(--fade-size);
+  }
+}
+
+/* Bands only, so a focus outline on the bar itself stays outside the fade. */
+@supports (mask: linear-gradient(#000, #000) no-clip subtract) {
+  .toolbar {
+    -webkit-mask-image: none;
+    mask:
+      linear-gradient(#000, #000) no-clip subtract,
+      linear-gradient(to var(--fade-dir), #000, transparent) var(--fade-start-pos) 0 / var(--fade-start) 100% no-repeat no-clip,
+      linear-gradient(to var(--fade-dir), transparent, #000) var(--fade-end-pos) 0 / var(--fade-end) 100% no-repeat no-clip;
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .toolbar {
+    transition:
+      --fade-start 0.2s,
+      --fade-end 0.2s;
+  }
+
+  .toolbar.more-start {
+    --fade-start: var(--fade-size);
+  }
+
+  .toolbar.more-end {
+    --fade-end: var(--fade-size);
   }
 }
 
