@@ -1219,7 +1219,7 @@ select.select {
     text-align: center;
     white-space: normal;
     color: var(--color-on-accent);
-    background: #20221f;
+    background: var(--color-accent-700);
     border-radius: var(--radius-control);
     box-shadow: 0 6px 20px #0002;
     opacity: 0;
@@ -1505,14 +1505,20 @@ select.select {
   /* Bottom */
 
   .toast {
-    right: 20px;
+    right: calc(20px + var(--images-panel));
     bottom: 20px;
     left: auto;
+    z-index: 8;
     width: revert;
-    max-width: calc(100vw - 40px);
+    max-width: min(360px, calc(100vw - var(--images-panel) - 80px));
     text-align: revert;
     white-space: revert;
     transform: none;
+  }
+
+  .images-panel.is-collapsed ~ .toast {
+    right: calc(20px + 21px);
+    max-width: calc(100vw - 21px - 80px);
   }
 }
 
