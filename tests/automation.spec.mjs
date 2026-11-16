@@ -434,15 +434,15 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
   expect(start.canvas).toEqual({ width: 500, height: 500 });
   await expect(page.locator("#ratioCurrent")).toHaveText("1:1");
 
-  const [imageA, imageB] = fixture("a-1300x2131.png", "b-1300x2131.png");
+  const [imageA, imageB] = fixture("a-500x800.png", "b-500x800.png");
   await page.setInputFiles("#fileInput", [imageA, imageB]);
   await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers.length === 2);
   const loaded = await snap(page);
-  expect(loaded.layers.map((l) => l.name)).toEqual(["a-1300x2131.png", "b-1300x2131.png"]);
+  expect(loaded.layers.map((l) => l.name)).toEqual(["a-500x800.png", "b-500x800.png"]);
   expect(loaded.selected).toEqual(loaded.layers.map((l) => l.id));
-  expect(loaded.layers.every((l) => l.w === 1300 && l.h === 2131)).toBe(true);
+  expect(loaded.layers.every((l) => l.w === 500 && l.h === 800)).toBe(true);
   const domOrder = () => page.locator("#layers .image-card .image-card-name").allTextContents();
-  expect(await domOrder()).toEqual(["a-1300x2131.png", "b-1300x2131.png"]);
+  expect(await domOrder()).toEqual(["a-500x800.png", "b-500x800.png"]);
   // First card is the top layer, so A covers the default canvas.
   const covered = await sample(page, 250, 250);
   expect(covered[0]).toBeGreaterThan(150);
@@ -452,14 +452,14 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
   await page.locator("#fitImageBtn").click();
   await page.waitForFunction(() => {
     const c = window.__imageEditorTest.snapshot().canvas;
-    return c.width === 1300 && c.height === 2131;
+    return c.width === 500 && c.height === 800;
   });
 
   await page.locator("#ratioBtn").click();
   await page.getByRole("menuitemradio", { name: "9:16" }).click();
   await page.waitForFunction(() => {
     const c = window.__imageEditorTest.snapshot().canvas;
-    return c.width === 1198 && c.height === 2131;
+    return c.width === 450 && c.height === 800;
   });
   await expect(page.locator("#ratioCurrent")).toHaveText("9:16");
   await page.keyboard.press("Escape");
@@ -467,14 +467,14 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
   await page.locator("#invertRatioBtn").click();
   await page.waitForFunction(() => {
     const c = window.__imageEditorTest.snapshot().canvas;
-    return c.width === 1300 && c.height === 731;
+    return c.width === 500 && c.height === 281;
   });
   await expect(page.locator("#ratioCurrent")).toHaveText("16:9");
 
   await placeCell(page, 0, 1);
   const placed = await snap(page);
   const active = placed.layers.find((l) => l.id === placed.activeId);
-  expect(active.name).toBe("b-1300x2131.png");
+  expect(active.name).toBe("b-500x800.png");
   expect(active.x).toBe(0);
 
   const cards = page.locator("#layers .image-card");
@@ -487,9 +487,9 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
   await page.mouse.up();
   await page.waitForFunction(() => {
     const names = window.__imageEditorTest.snapshot().layers.map((l) => l.name);
-    return names[0] === "b-1300x2131.png" && names[1] === "a-1300x2131.png";
+    return names[0] === "b-500x800.png" && names[1] === "a-500x800.png";
   });
-  expect(await domOrder()).toEqual(["b-1300x2131.png", "a-1300x2131.png"]);
+  expect(await domOrder()).toEqual(["b-500x800.png", "a-500x800.png"]);
   const onTop = await sample(page, 10, 10);
   expect(onTop[2]).toBeGreaterThan(150);
   expect(onTop[0]).toBeLessThan(80);
@@ -514,7 +514,7 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
       live: window.__imageEditorTest.sample(10, 10),
     };
   });
-  expect(copied.width).toBe(1300);
-  expect(copied.height).toBe(731);
+  expect(copied.width).toBe(500);
+  expect(copied.height).toBe(281);
   expect(copied.px).toEqual(copied.live);
 });
