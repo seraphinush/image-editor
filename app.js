@@ -291,7 +291,7 @@ function bootEditor() {
       button.setAttribute("aria-label", label);
       button.setAttribute("aria-pressed", String(all));
       const icon = button.querySelector(".material-symbols");
-      if (icon) icon.textContent = all ? "deselect" : "grid_view";
+      if (icon) icon.textContent = all ? "deselect" : "select_all";
     }
     function drawList() {
       layersEl.innerHTML = "";
@@ -1090,7 +1090,6 @@ function bootEditor() {
     let chromeReady = false;
     function placeMobileChrome() {
       const root = document.documentElement;
-      const panel = $("#imagesPanel");
       const header = document.querySelector(".app-header");
       if (header) root.style.setProperty("--header-block", Math.round(header.getBoundingClientRect().height) + "px");
       toolbar.setAttribute("aria-orientation", mobileTools.matches ? "horizontal" : "vertical");
@@ -1100,7 +1099,6 @@ function bootEditor() {
       if (!mobileTools.matches) {
         root.style.removeProperty("--mobile-chrome");
         root.style.removeProperty("--desktop-chrome");
-        if (panel) panel.style.bottom = "";
       } else {
         root.style.removeProperty("--desktop-chrome");
         // Layout viewport height stays stable under pinch-zoom; innerHeight can drift with visualViewport.
@@ -1108,7 +1106,8 @@ function bootEditor() {
         const dockTop = dock.getBoundingClientRect().top;
         const dockClear = Math.max(0, Math.min(layoutH, Math.round(layoutH - dockTop)));
         const open = paletteOpen && toolbar.querySelector(".tool-group.is-selected");
-        nextMobile = open ? dockClear + 20 + toolbar.offsetHeight : dockClear;
+        // Closed dock: lift the images panel by one button so the dock does not sit on it.
+        nextMobile = open ? dockClear + 20 + toolbar.offsetHeight : dockClear + 30;
       }
       const next = { desktop: nextDesktop, mobile: nextMobile };
       cancelAnimationFrame(chromeAnim);
@@ -1124,7 +1123,6 @@ function bootEditor() {
         };
         root.style.setProperty("--desktop-chrome", chromeNow.desktop + "px");
         root.style.setProperty("--mobile-chrome", chromeNow.mobile + "px");
-        if (mobileTools.matches && panel) panel.style.bottom = chromeNow.mobile + 20 + "px";
         fitCanvas();
         if (t < 1) chromeAnim = requestAnimationFrame(step);
       };

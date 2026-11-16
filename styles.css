@@ -549,6 +549,7 @@ select.select {
 
 .empty-state {
   position: absolute;
+  z-index: 2;
   inset: 0;
   display: flex;
   align-items: safe center;
@@ -560,7 +561,7 @@ select.select {
 .empty-state-card {
   border: 1px solid var(--color-empty-border);
   padding: 34px;
-  width: min(440px, 90%);
+  width: min(440px, calc(100% - 32px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -569,7 +570,6 @@ select.select {
   background: var(--color-empty-bg);
   border-radius: 16px;
   box-shadow: var(--shadow-empty);
-  z-index: 2;
 }
 
 .empty-state-card h2 {
@@ -580,45 +580,6 @@ select.select {
 .empty-state-card p {
   color: var(--color-empty-text);
   text-wrap: pretty;
-}
-
-/* The canvas container has a definite size. Compact the card to that size so it stays on the canvas in a short landscape viewport. */
-@container canvas (max-height: 280px) {
-  .empty-state-card {
-    padding: 16px;
-    gap: 8px;
-  }
-
-  .empty-state-hint {
-    display: none;
-  }
-
-  .empty-state-card #emptyOpen {
-    height: 44px;
-  }
-}
-
-@container canvas (max-height: 180px) {
-  .empty-state-card {
-    padding: 12px;
-  }
-
-  .empty-state-card > p:not(.empty-state-hint) {
-    display: none;
-  }
-}
-
-@supports not (container-type: size) {
-  @media (max-height: 500px) {
-    .empty-state-card {
-      padding: 16px;
-      gap: 8px;
-    }
-
-    .empty-state-hint {
-      display: none;
-    }
-  }
 }
 
 .empty-state-card #emptyOpen {
@@ -1658,7 +1619,7 @@ select.select {
     position: fixed;
     z-index: 4;
     right: 0;
-    bottom: 200px;
+    bottom: calc(var(--mobile-chrome, 80px) + 20px);
     left: auto;
     width: min(100% - 36px, 640px);
     height: auto;
