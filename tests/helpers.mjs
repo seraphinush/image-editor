@@ -13,6 +13,8 @@ export function ensureFixtures() {
   writeSolid("green-50x300.png", 50, 300, [40, 180, 80, 255]);
   writeSolid("tiny-8.png", 8, 8, [255, 200, 0, 255]);
   writeSolid("large-800x600.png", 800, 600, [120, 40, 160, 255]);
+  writeSolid("a-1300x2131.png", 1300, 2131, [220, 40, 40, 255]);
+  writeSolid("b-1300x2131.png", 1300, 2131, [40, 80, 220, 255]);
   writeGradient("gradient-60.png", 60, 40);
 }
 

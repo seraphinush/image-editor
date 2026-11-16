@@ -7,6 +7,7 @@ import {
   fixture,
   openApp,
   openAutomation,
+  openFrame,
   openTransform,
   placeCell,
   recordOff,
@@ -424,4 +425,96 @@ test("A22 merge then copy smoke", async ({ page, context }) => {
   expect(s.canvas.width).toBe(300);
   await page.locator("#copyBtn").click();
   await expect.poll(statusText.bind(null, page)).toMatch(/copied|Clipboard/i);
+});
+
+test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  const start = await snap(page);
+  expect(start.layers).toHaveLength(0);
+  expect(start.canvas).toEqual({ width: 500, height: 500 });
+  await expect(page.locator("#ratioCurrent")).toHaveText("1:1");
+
+  const [imageA, imageB] = fixture("a-1300x2131.png", "b-1300x2131.png");
+  await page.setInputFiles("#fileInput", [imageA, imageB]);
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers.length === 2);
+  const loaded = await snap(page);
+  expect(loaded.layers.map((l) => l.name)).toEqual(["a-1300x2131.png", "b-1300x2131.png"]);
+  expect(loaded.selected).toEqual(loaded.layers.map((l) => l.id));
+  expect(loaded.layers.every((l) => l.w === 1300 && l.h === 2131)).toBe(true);
+  const domOrder = () => page.locator("#layers .image-card .image-card-name").allTextContents();
+  expect(await domOrder()).toEqual(["a-1300x2131.png", "b-1300x2131.png"]);
+  // First card is the top layer, so A covers the default canvas.
+  const covered = await sample(page, 250, 250);
+  expect(covered[0]).toBeGreaterThan(150);
+  expect(covered[2]).toBeLessThan(80);
+
+  await openFrame(page);
+  await page.locator("#fitImageBtn").click();
+  await page.waitForFunction(() => {
+    const c = window.__imageEditorTest.snapshot().canvas;
+    return c.width === 1300 && c.height === 2131;
+  });
+
+  await page.locator("#ratioBtn").click();
+  await page.getByRole("menuitemradio", { name: "9:16" }).click();
+  await page.waitForFunction(() => {
+    const c = window.__imageEditorTest.snapshot().canvas;
+    return c.width === 1198 && c.height === 2131;
+  });
+  await expect(page.locator("#ratioCurrent")).toHaveText("9:16");
+  await page.keyboard.press("Escape");
+
+  await page.locator("#invertRatioBtn").click();
+  await page.waitForFunction(() => {
+    const c = window.__imageEditorTest.snapshot().canvas;
+    return c.width === 1300 && c.height === 731;
+  });
+  await expect(page.locator("#ratioCurrent")).toHaveText("16:9");
+
+  await placeCell(page, 0, 1);
+  const placed = await snap(page);
+  const active = placed.layers.find((l) => l.id === placed.activeId);
+  expect(active.name).toBe("b-1300x2131.png");
+  expect(active.x).toBe(0);
+
+  const cards = page.locator("#layers .image-card");
+  await cards.nth(1).scrollIntoViewIfNeeded();
+  const from = await cards.nth(1).boundingBox();
+  const to = await cards.nth(0).boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + 6, to.y + 6, { steps: 16 });
+  await page.mouse.up();
+  await page.waitForFunction(() => {
+    const names = window.__imageEditorTest.snapshot().layers.map((l) => l.name);
+    return names[0] === "b-1300x2131.png" && names[1] === "a-1300x2131.png";
+  });
+  expect(await domOrder()).toEqual(["b-1300x2131.png", "a-1300x2131.png"]);
+  const onTop = await sample(page, 10, 10);
+  expect(onTop[2]).toBeGreaterThan(150);
+  expect(onTop[0]).toBeLessThan(80);
+
+  await page.locator("#copyBtn").click();
+  await expect.poll(statusText.bind(null, page)).toMatch(/copied|Clipboard/i);
+  const copied = await page.evaluate(async () => {
+    const items = await navigator.clipboard.read();
+    const item = items.find((entry) => entry.types.includes("image/png"));
+    const blob = await item.getType("image/png");
+    const bitmap = await createImageBitmap(blob);
+    const board = document.createElement("canvas");
+    board.width = bitmap.width;
+    board.height = bitmap.height;
+    const g = board.getContext("2d");
+    g.drawImage(bitmap, 0, 0);
+    const px = g.getImageData(10, 10, 1, 1).data;
+    return {
+      width: bitmap.width,
+      height: bitmap.height,
+      px: [px[0], px[1], px[2], px[3]],
+      live: window.__imageEditorTest.sample(10, 10),
+    };
+  });
+  expect(copied.width).toBe(1300);
+  expect(copied.height).toBe(731);
+  expect(copied.px).toEqual(copied.live);
 });

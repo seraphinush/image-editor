@@ -202,9 +202,8 @@ function bootEditor() {
       return layers.find((x) => x.id === activeId);
     }
     function stack() {
-      const top = layers.find((layer) => layer.id === topId);
-      if (!top || top.visible === false || layers.length < 2) return layers;
-      return layers.filter((layer) => layer !== top).concat(top);
+      // The first card in the images list is the topmost layer on the canvas.
+      return [...layers].reverse();
     }
     function fitCanvas() {
       const stageEl = $("#stage"),
