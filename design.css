@@ -75,7 +75,7 @@
   --color-layer-border: var(--color-border);
   --color-layer-name: #55574f;
   --color-layer-selected: var(--color-layer);
-  --color-stage-dot: var(--color-gray-150);
+  --color-stage-dot: var(--color-gray-350);
   --color-thumb: #f2f1ed;
   --color-thumb-checker: #e5e5e1;
   --color-tool-label: var(--color-text-subtle);

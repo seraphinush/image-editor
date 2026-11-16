@@ -522,6 +522,7 @@ select.select {
   height: 30px;
   display: grid;
   place-items: center;
+  background: var(--color-surface);
   border-radius: 4px;
   box-shadow: none;
   pointer-events: auto;
@@ -1019,7 +1020,9 @@ select.select {
     justify-content: center;
     overflow: hidden;
     background-color: var(--color-stage-background);
-    background-image: radial-gradient(var(--color-stage-dot) 0.75px, transparent 0.75px);
+    background-image: radial-gradient(circle, var(--color-stage-dot) 1px, transparent calc(1px + 1px));
+    background-position: 0 0;
+    background-repeat: repeat;
     background-size: 16px 16px;
     overscroll-behavior: contain;
     touch-action: none;
