@@ -95,12 +95,15 @@ function bootEditor() {
         if (themeMode === "system") applyTheme();
       });
     applyTheme();
-    function say(message) {
+    function say(message, tone) {
       const el = $("#status");
       el.textContent = message;
+      el.classList.remove("is-visible", "is-warn", "is-error");
+      void el.offsetWidth;
       el.classList.add("is-visible");
+      if (tone === "warn" || tone === "error") el.classList.add("is-" + tone);
       clearTimeout(say.timer);
-      say.timer = setTimeout(() => el.classList.remove("is-visible"), 2200);
+      say.timer = setTimeout(() => el.classList.remove("is-visible", "is-warn", "is-error"), 2200);
     }
     function confirmDialog({ title, message, accent = "yes" }) {
       const dialog = $("#confirm"),
@@ -386,7 +389,7 @@ function bootEditor() {
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        say("Could not open that image.");
+        say("Could not open that image.", "error");
       };
       img.src = url;
     }
@@ -519,7 +522,7 @@ function bootEditor() {
             x = Math.max(0, +$("#cropAmount").value || 0),
             y = x;
           if (!l) {
-            say("Choose an image first.");
+            say("Choose an image first.", "warn");
             return;
           }
           if (x) pushHistory();
@@ -558,7 +561,7 @@ function bootEditor() {
         l = active(),
         unit = $("#scalePixels").getAttribute("aria-pressed") === "true" ? "pixels" : "percent";
       if (!l) {
-        say("Choose an image first.");
+        say("Choose an image first.", "warn");
         return;
       }
       pushHistory();
@@ -620,7 +623,7 @@ function bootEditor() {
       const chosen = layers.filter((l) => selected.has(l.id)),
         targets = chosen.length ? chosen : active() ? [active()] : [];
       if (!targets.length) {
-        say("Choose an image first.");
+        say("Choose an image first.", "warn");
         return null;
       }
       return targets;
@@ -651,7 +654,7 @@ function bootEditor() {
         for (const [layer, img] of live) applyBitmap(layer, img, swap);
         render();
       } catch {
-        say("Could not transform that image.");
+        say("Could not transform that image.", "error");
       } finally {
         transforming = false;
       }
@@ -745,7 +748,7 @@ function bootEditor() {
     $("#fitImageBtn").onclick = () => {
       const use = fitTargets();
       if (!use.length) {
-        say("Add an image first.");
+        say("Add an image first.", "warn");
         return;
       }
       let minX = Infinity,
@@ -814,7 +817,7 @@ function bootEditor() {
     function applyCanvasRatio(ratioW, ratioH) {
       const use = fitTargets();
       if (!use.length) {
-        say("Add an image first.");
+        say("Add an image first.", "warn");
         syncRatioPresets();
         return;
       }
@@ -1073,7 +1076,7 @@ function bootEditor() {
     }
     function usePlaceTool() {
       if (!layers.length) {
-        say("Add an image first.");
+        say("Add an image first.", "warn");
         return;
       }
       endDrag();
@@ -1226,7 +1229,7 @@ function bootEditor() {
     function placeImage(col, row) {
       const l = active();
       if (!l) {
-        say("Choose an image first.");
+        say("Choose an image first.", "warn");
         return;
       }
       pushHistory();
@@ -1245,7 +1248,7 @@ function bootEditor() {
     async function merge(direction) {
       const group = layers.filter((l) => selected.has(l.id));
       if (group.length < 2) {
-        say("Tap each image to select it. Tap a selected image again to remove it.");
+        say("Tap each image to select it. Tap a selected image again to remove it.", "warn");
         return;
       }
       const vertical = direction === "v";
@@ -1307,7 +1310,7 @@ function bootEditor() {
     $("#duplicateBtn").onclick = () => {
       const group = layers.filter((l) => selected.has(l.id));
       if (!group.length) {
-        say("Tap an image to select it. Tap a selected image again to remove it.");
+        say("Tap an image to select it. Tap a selected image again to remove it.", "warn");
         return;
       }
       pushHistory();
@@ -1356,7 +1359,7 @@ function bootEditor() {
       try {
         localStorage.setItem("image-editor-templates", JSON.stringify(templates));
       } catch {
-        say("Could not save templates in this browser.");
+        say("Could not save templates in this browser.", "error");
       }
       refreshTemplates();
     }
@@ -1430,11 +1433,11 @@ function bootEditor() {
     };
     $("#saveSeries").onclick = () => {
       if (recording) {
-        say("Stop recording before saving the series.");
+        say("Stop recording before saving the series.", "warn");
         return;
       }
       if (!recordedSteps.length) {
-        say("Record at least one transformation first.");
+        say("Record at least one transformation first.", "warn");
         return;
       }
       const name = prompt("Name this transformation template:");
@@ -1452,7 +1455,7 @@ function bootEditor() {
       let targets = layers.filter((layer) => selected.has(layer.id));
       if (!targets.length && active()) targets = [active()];
       if (!targets.length) {
-        say("Select one or more images first.");
+        say("Select one or more images first.", "warn");
         return;
       }
       pushHistory();
@@ -1474,7 +1477,7 @@ function bootEditor() {
     }
     $("#copyBtn").onclick = async () => {
       if (!layers.length) {
-        say("Add an image first.");
+        say("Add an image first.", "warn");
         return;
       }
       const b = await blob();
@@ -1482,7 +1485,7 @@ function bootEditor() {
         await navigator.clipboard.write([new ClipboardItem({ "image/png": b })]);
         say("Image copied to clipboard.");
       } catch {
-        say("Clipboard access was blocked. Try downloading the PNG.");
+        say("Clipboard access was blocked. Try downloading the PNG.", "error");
       }
     };
     function safePngName(name) {

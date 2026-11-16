@@ -786,6 +786,62 @@ select.select {
   opacity: 1;
 }
 
+.toast.is-warn {
+  border-left: 3px solid var(--color-warning);
+}
+
+.toast.is-error {
+  border-left: 3px solid var(--color-error);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .toast.is-visible.is-warn {
+    animation: toast-warn 125ms ease-in-out;
+  }
+
+  .toast.is-visible.is-error {
+    animation: toast-error 250ms ease-in-out;
+  }
+}
+
+@keyframes toast-warn {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  33% {
+    transform: translateX(-8px);
+  }
+
+  66% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes toast-error {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-8px);
+  }
+
+  40% {
+    transform: translateX(8px);
+  }
+
+  60% {
+    transform: translateX(-8px);
+  }
+
+  80% {
+    transform: translateX(8px);
+  }
+}
+
 .confirm {
   position: fixed;
   width: min(400px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
@@ -1228,7 +1284,7 @@ select.select {
     opacity: 0;
     pointer-events: none;
     transform: translateX(-50%);
-    transition: 0.2s;
+    transition: opacity 0.2s ease;
   }
 }
 
@@ -1644,7 +1700,7 @@ select.select {
   }
 
   .toast {
-    top: calc(12px + env(safe-area-inset-top, 0px));
+    top: calc(var(--header-block, 48px) + 10px);
     right: auto;
     bottom: auto;
     left: 50%;
@@ -1652,19 +1708,6 @@ select.select {
     transform: none;
     translate: -50% 0;
     transition: opacity 0.2s ease;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .toast {
-      translate: -50% calc(-100% - 12px - env(safe-area-inset-top, 0px));
-      transition:
-        translate 0.2s ease,
-        opacity 0.2s ease;
-    }
-
-    .toast.is-visible {
-      translate: -50% 0;
-    }
   }
 }
 
