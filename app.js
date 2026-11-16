@@ -278,8 +278,21 @@ function bootEditor() {
         }
       }
     }
+    function syncSelectAll() {
+      const button = $("#selectAll");
+      if (!button) return;
+      const all = layers.length > 0 && layers.every((l) => selected.has(l.id));
+      const label = all ? "Select none" : "Select all";
+      button.disabled = !layers.length;
+      button.title = label;
+      button.setAttribute("aria-label", label);
+      button.setAttribute("aria-pressed", String(all));
+      const icon = button.querySelector(".material-symbols");
+      if (icon) icon.textContent = all ? "deselect" : "grid_view";
+    }
     function drawList() {
       layersEl.innerHTML = "";
+      syncSelectAll();
       if (!layers.length) {
         layersEl.innerHTML = '<li class="image-list-empty">Pasted and added images will appear here.</li>';
         return;
@@ -399,11 +412,7 @@ function bootEditor() {
       e.preventDefault();
       for (const f of e.dataTransfer.files) loadFile(f);
     });
-    $("#handBtn").onclick = () => {
-      hand = !hand;
-      $("#handBtn").setAttribute("aria-pressed", String(hand));
-      stage.style.cursor = hand ? "grab" : "default";
-    };
+    $("#handBtn").onclick = () => useHandTool();
     const setIcon = (selector, symbol, title, iconClass = "material-symbols outlined") => {
       const el = $(selector);
       el.innerHTML = `<span class="${iconClass}" aria-hidden="true">${symbol}</span>`;
@@ -416,7 +425,7 @@ function bootEditor() {
       if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
       const key = e.key.toLowerCase();
       if (key === "h") {
-        if (!hand) $("#handBtn").click();
+        useHandTool();
         e.preventDefault();
       } else if (key === "c") {
         $("#cropAmount").focus();
@@ -461,7 +470,7 @@ function bootEditor() {
     stage.addEventListener(
       "pointerdown",
       (e) => {
-        if (!hand) return;
+        if (!hand || (layoutOverlay && !layoutOverlay.hidden) || e.target.closest(".layout-grid, .toolbar, .tool-dock, .resize-handle")) return;
         e.preventDefault();
         const p = canvasPoint(e);
         const hit = [...stack()].reverse().find((l) => l.visible !== false && p.x >= l.x && p.x <= l.x + l.w && p.y >= l.y && p.y <= l.y + l.h);
@@ -546,7 +555,7 @@ function bootEditor() {
     $("#scaleBtn").onclick = () => {
       const v = Math.max(1, +$("#scaleValue").value || 100),
         l = active(),
-        unit = $("#scaleUnit").value;
+        unit = $("#scalePixels").getAttribute("aria-pressed") === "true" ? "pixels" : "percent";
       if (!l) {
         say("Choose an image first.");
         return;
@@ -561,6 +570,14 @@ function bootEditor() {
       l.y = Math.round(cy - l.h / 2);
       recordStep({ type: "scale", value: v, unit });
       render();
+    };
+    $("#scalePercent").onclick = () => {
+      $("#scalePercent").setAttribute("aria-pressed", "true");
+      $("#scalePixels").setAttribute("aria-pressed", "false");
+    };
+    $("#scalePixels").onclick = () => {
+      $("#scalePercent").setAttribute("aria-pressed", "false");
+      $("#scalePixels").setAttribute("aria-pressed", "true");
     };
     function rasterize(layer, mode) {
       const sw = Math.max(1, Math.round(layer.sw)),
@@ -1013,87 +1030,176 @@ function bootEditor() {
     }
     document.querySelector(".toolbar-scroller")?.addEventListener("scroll", placeOpenMenus, { passive: true });
     window.addEventListener("resize", placeOpenMenus);
-    function bindToolbarOverflow() {
-      const bar = document.querySelector(".toolbar-scroller"),
-        panel = $("#morePanel"),
-        transform = $("#transformGroup"),
-        order = [$("#cropGroup"), $("#alignGroup")].filter(Boolean);
-      if (!bar || !panel || !transform || !order.length) return;
-      const firstInPanel = () => panel.querySelector(":scope > .tool-group"),
-        placeInRow = (group) => {
-          const later = order.find((item) => item !== group && item.parentElement === bar && order.indexOf(item) > order.indexOf(group));
-          (later || transform).before(group);
-        },
-        fits = () => bar.scrollWidth <= bar.clientWidth + 1;
-      let fitting = false;
-      const fit = () => {
-        if (fitting) return;
-        fitting = true;
-        try {
-          for (const group of order) if (group.parentElement !== bar) placeInRow(group);
-          for (let i = order.length - 1; i >= 0 && !fits(); i--) panel.insertBefore(order[i], firstInPanel());
-          for (const group of order) {
-            if (group.parentElement === bar) continue;
-            const slot = group.nextElementSibling;
-            placeInRow(group);
-            if (!fits()) panel.insertBefore(group, slot);
-          }
-        } finally {
-          fitting = false;
-        }
-      };
-      new ResizeObserver(fit).observe(bar);
-      fit();
-      document.fonts?.ready?.then(fit);
-      bindPopover($("#moreBtn"), panel);
-      if (!CSS.supports("animation-timeline", "scroll()")) {
-        const start = document.createElement("span"),
-          end = document.createElement("span");
-        for (const sentinel of [start, end]) {
-          sentinel.className = "toolbar-sentinel";
-          sentinel.setAttribute("aria-hidden", "true");
-        }
-        bar.prepend(start);
-        bar.append(end);
-        const observer = new IntersectionObserver(
-          (entries) => {
-            for (const entry of entries) bar.classList.toggle(entry.target === start ? "more-start" : "more-end", !entry.isIntersecting);
-          },
-          { root: bar, rootMargin: "1px" },
-        );
-        observer.observe(start);
-        observer.observe(end);
+    function bindScrollHints() {
+      const bar = document.querySelector(".toolbar-scroller");
+      if (!bar || CSS.supports("animation-timeline", "scroll()")) return;
+      const start = document.createElement("span"),
+        end = document.createElement("span");
+      for (const sentinel of [start, end]) {
+        sentinel.className = "toolbar-sentinel";
+        sentinel.setAttribute("aria-hidden", "true");
       }
+      bar.prepend(start);
+      bar.append(end);
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) bar.classList.toggle(entry.target === start ? "more-start" : "more-end", !entry.isIntersecting);
+        },
+        { root: bar, rootMargin: "1px" },
+      );
+      observer.observe(start);
+      observer.observe(end);
     }
-    bindToolbarOverflow();
-    document.querySelectorAll("[data-align]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          const l = active();
-          if (!l) return;
-          pushHistory();
-          const d = b.dataset.align;
-          if (d === "center" || d === "horizontal") l.x = Math.round((canvas.width - l.w) / 2);
-          if (d === "center" || d === "vertical") l.y = Math.round((canvas.height - l.h) / 2);
-          recordStep({ type: "align", mode: d });
-          render();
-        }),
-    );
-    document.querySelectorAll("[data-edge]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          const l = active();
-          if (!l) return;
-          pushHistory();
-          const d = b.dataset.edge;
-          if (d === "left") l.x = 0;
-          if (d === "right") l.x = canvas.width - l.w;
-          if (d === "top") l.y = 0;
-          if (d === "bottom") l.y = canvas.height - l.h;
-          recordStep({ type: "edge", edge: d });
-          render();
-        }),
-    );
+    bindScrollHints();
+    const layoutOverlay = $("#layoutOverlay");
+    function setLayoutOverlay(open) {
+      if (!layoutOverlay) return;
+      layoutOverlay.hidden = !open;
+      $("#layoutGridBtn")?.setAttribute("aria-pressed", String(open));
+    }
+    const toolbar = document.querySelector(".toolbar");
+    const mobileTools = matchMedia("(max-width: 700px)");
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    let paletteName = "frame";
+    let paletteOpen = false;
+    let paletteTimer = 0;
+    function useHandTool() {
+      endDrag();
+      hand = true;
+      setLayoutOverlay(false);
+      $("#handBtn").setAttribute("aria-pressed", "true");
+      stage.style.cursor = "grab";
+    }
+    function usePlaceTool() {
+      endDrag();
+      hand = false;
+      setLayoutOverlay(true);
+      $("#handBtn").setAttribute("aria-pressed", "false");
+      stage.style.cursor = "default";
+    }
+    let chromeAnim = 0;
+    let chromeNow = { desktop: 0, mobile: 0 };
+    let chromeReady = false;
+    function placeMobileChrome() {
+      const root = document.documentElement;
+      const panel = $("#imagesPanel");
+      const header = document.querySelector(".app-header");
+      if (header) root.style.setProperty("--header-block", Math.round(header.getBoundingClientRect().height) + "px");
+      toolbar.setAttribute("aria-orientation", mobileTools.matches ? "horizontal" : "vertical");
+      const dock = document.querySelector(".tool-dock");
+      let nextDesktop = 0;
+      let nextMobile = 0;
+      if (!mobileTools.matches) {
+        root.style.removeProperty("--mobile-chrome");
+        root.style.removeProperty("--desktop-chrome");
+        if (panel) panel.style.bottom = "";
+      } else {
+        root.style.removeProperty("--desktop-chrome");
+        const dockClear = Math.max(0, Math.round(innerHeight - dock.getBoundingClientRect().top));
+        const open = paletteOpen && toolbar.querySelector(".tool-group.is-selected");
+        nextMobile = open ? dockClear + 20 + toolbar.offsetHeight : dockClear;
+      }
+      const next = { desktop: nextDesktop, mobile: nextMobile };
+      cancelAnimationFrame(chromeAnim);
+      const from = { ...chromeNow };
+      const duration = !chromeReady || reduceMotion.matches ? 0 : 160;
+      const start = performance.now();
+      const step = (now) => {
+        const t = duration ? Math.min(1, (now - start) / duration) : 1;
+        const ease = 1 - (1 - t) ** 3;
+        chromeNow = {
+          desktop: from.desktop + (next.desktop - from.desktop) * ease,
+          mobile: from.mobile + (next.mobile - from.mobile) * ease,
+        };
+        root.style.setProperty("--desktop-chrome", chromeNow.desktop + "px");
+        root.style.setProperty("--mobile-chrome", chromeNow.mobile + "px");
+        if (mobileTools.matches && panel) panel.style.bottom = chromeNow.mobile + 20 + "px";
+        fitCanvas();
+        if (t < 1) chromeAnim = requestAnimationFrame(step);
+      };
+      chromeReady = true;
+      chromeAnim = requestAnimationFrame(step);
+    }
+    function paintPalette(name, open) {
+      for (const panel of document.querySelectorAll("[data-tool-panel]")) panel.classList.toggle("is-selected", open && panel.dataset.toolPanel === name);
+      for (const dock of document.querySelectorAll("[data-dock]")) dock.setAttribute("aria-pressed", String(open && dock.dataset.dock === name));
+      const ratioMenu = $("#ratioMenu");
+      if (name !== "frame" && ratioMenu && isPopoverOpen(ratioMenu)) ratioMenu.hidePopover();
+      if (open && name === "layout") useHandTool();
+      else {
+        if (layoutOverlay && !layoutOverlay.hidden) {
+          hand = true;
+          $("#handBtn").setAttribute("aria-pressed", "true");
+          stage.style.cursor = "grab";
+        }
+        setLayoutOverlay(false);
+      }
+      placeMobileChrome();
+    }
+    function closePalette(motion) {
+      window.clearTimeout(paletteTimer);
+      toolbar.classList.add("is-dock-away");
+      paletteOpen = false;
+      placeMobileChrome();
+      const finish = () => paintPalette(paletteName, false);
+      if (motion) paletteTimer = window.setTimeout(finish, 160);
+      else finish();
+    }
+    function selectTool(name, animate) {
+      const motion = Boolean(animate) && !reduceMotion.matches;
+      if (paletteOpen && name === paletteName) {
+        closePalette(motion);
+        return;
+      }
+      window.clearTimeout(paletteTimer);
+      const show = () => {
+        paletteName = name;
+        paletteOpen = true;
+        paintPalette(name, true);
+        if (motion && toolbar.classList.contains("is-dock-away")) requestAnimationFrame(() => toolbar.classList.remove("is-dock-away"));
+        else toolbar.classList.remove("is-dock-away");
+      };
+      if (!paletteOpen || !motion) {
+        show();
+        return;
+      }
+      toolbar.classList.add("is-dock-away");
+      paletteTimer = window.setTimeout(show, 160);
+    }
+    for (const dock of document.querySelectorAll("[data-dock]")) {
+      dock.addEventListener("click", () => selectTool(dock.dataset.dock, true));
+    }
+    mobileTools.addEventListener("change", () => {
+      window.clearTimeout(paletteTimer);
+      if (paletteOpen) {
+        toolbar.classList.remove("is-dock-away");
+        paintPalette(paletteName, true);
+        return;
+      }
+      toolbar.classList.add("is-dock-away");
+      paintPalette(paletteName, false);
+    });
+    addEventListener("resize", placeMobileChrome);
+    $("#layoutGridBtn").onclick = () => (layoutOverlay.hidden ? usePlaceTool() : useHandTool());
+    function placeImage(col, row) {
+      const l = active();
+      if (!l) {
+        say("Choose an image first.");
+        return;
+      }
+      pushHistory();
+      l.x = col === 0 ? 0 : col === 2 ? canvas.width - l.w : Math.round((canvas.width - l.w) / 2);
+      l.y = row === 0 ? 0 : row === 2 ? canvas.height - l.h : Math.round((canvas.height - l.h) / 2);
+      recordStep({ type: "place", col, row });
+      render();
+      useHandTool();
+    }
+    document.querySelectorAll("[data-place-col]").forEach((button) => {
+      button.addEventListener("click", () => placeImage(+button.dataset.placeCol, +button.dataset.placeRow));
+    });
+    paletteOpen = false;
+    toolbar.classList.add("is-dock-away");
+    paintPalette("frame", false);
     async function merge(direction) {
       const group = layers.filter((l) => selected.has(l.id));
       if (group.length < 2) {
@@ -1137,8 +1243,19 @@ function bootEditor() {
     $("#mergeH").onclick = () => merge("h");
     $("#mergeV").onclick = () => merge("v");
     $("#selectAll").onclick = () => {
-      selected = new Set(layers.map((l) => l.id));
+      const all = layers.length > 0 && layers.every((l) => selected.has(l.id));
+      if (all) {
+        selected.clear();
+        activeId = null;
+        topId = null;
+      } else {
+        selected = new Set(layers.map((l) => l.id));
+        const current = layers.find((l) => l.id === activeId) || layers.at(-1);
+        activeId = current ? current.id : null;
+        topId = current && current.visible !== false ? current.id : null;
+      }
       drawList();
+      render();
     };
     function duplicateName(name) {
       const match = /^(.*) copy(?: (\d+))?$/.exec(name);
@@ -1244,6 +1361,11 @@ function bootEditor() {
         if (step.edge === "right") layer.x = canvas.width - layer.w;
         if (step.edge === "top") layer.y = 0;
         if (step.edge === "bottom") layer.y = canvas.height - layer.h;
+      } else if (step.type === "place") {
+        const col = step.col,
+          row = step.row;
+        layer.x = col === 0 ? 0 : col === 2 ? canvas.width - layer.w : Math.round((canvas.width - layer.w) / 2);
+        layer.y = row === 0 ? 0 : row === 2 ? canvas.height - layer.h : Math.round((canvas.height - layer.h) / 2);
       } else if (step.type === "move") {
         layer.x += step.dx;
         layer.y += step.dy;
