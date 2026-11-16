@@ -1352,7 +1352,7 @@ select.select {
     padding: 8px;
     border: 0;
     border-radius: 16px;
-    box-shadow: none;
+    box-shadow: 0 4px 12px #2c2c6a55;
     translate: 0 -50%;
   }
 
@@ -1569,7 +1569,7 @@ select.select {
     max-width: calc(100% - 16px);
     grid-row: auto;
     border-radius: 16px;
-    box-shadow: none;
+    box-shadow: 0 4px 12px #2c2c6a55;
     justify-content: safe center;
     translate: -50% 0;
     transition: translate var(--motion) ease;
