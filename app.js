@@ -295,6 +295,7 @@ function bootEditor() {
       syncSelectAll();
       if (!layers.length) {
         layersEl.innerHTML = '<li class="image-list-empty">Pasted and added images will appear here.</li>';
+        if (layoutOverlay && !layoutOverlay.hidden) useHandTool();
         return;
       }
       for (const l of layers) {
@@ -1071,6 +1072,10 @@ function bootEditor() {
       stage.style.cursor = "grab";
     }
     function usePlaceTool() {
+      if (!layers.length) {
+        say("Add an image first.");
+        return;
+      }
       endDrag();
       hand = false;
       setLayoutOverlay(true);
