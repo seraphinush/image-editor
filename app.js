@@ -1095,7 +1095,10 @@ function bootEditor() {
         if (panel) panel.style.bottom = "";
       } else {
         root.style.removeProperty("--desktop-chrome");
-        const dockClear = Math.max(0, Math.round(innerHeight - dock.getBoundingClientRect().top));
+        // Layout viewport height stays stable under pinch-zoom; innerHeight can drift with visualViewport.
+        const layoutH = document.documentElement.clientHeight || innerHeight;
+        const dockTop = dock.getBoundingClientRect().top;
+        const dockClear = Math.max(0, Math.min(layoutH, Math.round(layoutH - dockTop)));
         const open = paletteOpen && toolbar.querySelector(".tool-group.is-selected");
         nextMobile = open ? dockClear + 20 + toolbar.offsetHeight : dockClear;
       }
@@ -1180,6 +1183,40 @@ function bootEditor() {
       paintPalette(paletteName, false);
     });
     addEventListener("resize", placeMobileChrome);
+    // Pinch-zoom + orientation leaves visualViewport.scale and layout out of sync on
+    // mobile browsers; fixed chrome and fitCanvas then size against stale metrics.
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    const viewportBase = "width=device-width,initial-scale=1";
+    let orientationSettle = 0;
+    function resetPageZoom() {
+      const vv = window.visualViewport;
+      if (typeof vv?.resetScale === "function") {
+        vv.resetScale();
+        return;
+      }
+      if (!viewportMeta) return;
+      viewportMeta.setAttribute("content", `${viewportBase},maximum-scale=1`);
+      window.setTimeout(() => viewportMeta.setAttribute("content", viewportBase), 100);
+    }
+    function settleAfterOrientation() {
+      window.clearTimeout(orientationSettle);
+      resetPageZoom();
+      window.scrollTo(0, 0);
+      const settle = () => {
+        placeMobileChrome();
+        fitCanvas();
+      };
+      settle();
+      requestAnimationFrame(settle);
+      orientationSettle = window.setTimeout(() => {
+        const vv = window.visualViewport;
+        if (vv && vv.scale > 1.01) resetPageZoom();
+        window.scrollTo(0, 0);
+        settle();
+      }, 300);
+    }
+    addEventListener("orientationchange", settleAfterOrientation);
+    screen.orientation?.addEventListener("change", settleAfterOrientation);
     $("#layoutGridBtn").onclick = () => (layoutOverlay.hidden ? usePlaceTool() : useHandTool());
     function placeImage(col, row) {
       const l = active();
