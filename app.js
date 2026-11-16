@@ -379,19 +379,43 @@ function bootEditor() {
       drawList();
       render();
     }
-    function loadFile(file) {
-      if (!file.type.startsWith("image/")) return;
-      const url = URL.createObjectURL(file),
-        img = new Image();
-      img.onload = () => {
-        addImage(img, file.name);
-        URL.revokeObjectURL(url);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        say("Could not open that image.", "error");
-      };
-      img.src = url;
+    // Decode one file at a time so a multi-file pick, drop, or paste keeps that order in the images list.
+    let loadChain = Promise.resolve();
+    function decodeFile(file) {
+      const url = URL.createObjectURL(file);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          say("Could not open that image.", "error");
+          resolve(null);
+        };
+        img.src = url;
+      });
+    }
+    function loadFiles(list) {
+      const files = [...list].filter((file) => file.type.startsWith("image/"));
+      if (!files.length) return;
+      loadChain = loadChain.then(async () => {
+        const added = [];
+        for (const file of files) {
+          const img = await decodeFile(file);
+          if (!img) continue;
+          addImage(img, file.name);
+          added.push(layers.at(-1).id);
+        }
+        if (added.length < 2) return;
+        selected = new Set(added);
+        const last = layers.find((layer) => layer.id === added.at(-1));
+        activeId = last.id;
+        topId = last.visible === false ? null : last.id;
+        drawList();
+        render();
+      });
     }
     function open() {
       fileInput.click();
@@ -399,22 +423,24 @@ function bootEditor() {
     $("#openBtn").onclick = open;
     $("#emptyOpen").onclick = open;
     fileInput.onchange = () => {
-      for (const f of fileInput.files) loadFile(f);
+      loadFiles(fileInput.files);
       fileInput.value = "";
     };
     document.addEventListener("paste", (e) => {
+      const files = [];
       for (const item of e.clipboardData?.items ?? [])
         if (item.type.startsWith("image/")) {
           const f = item.getAsFile();
-          if (f) loadFile(f);
+          if (f) files.push(f);
         }
+      loadFiles(files);
     });
     stage.addEventListener("dragover", (e) => {
       e.preventDefault();
     });
     stage.addEventListener("drop", (e) => {
       e.preventDefault();
-      for (const f of e.dataTransfer.files) loadFile(f);
+      loadFiles(e.dataTransfer.files);
     });
     $("#handBtn").onclick = () => useHandTool();
     const setIcon = (selector, symbol, title, iconClass = "material-symbols outlined") => {
