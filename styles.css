@@ -556,6 +556,8 @@ select.select {
   justify-content: safe center;
   line-height: 1.5;
   overflow: auto;
+  /* Let fixed dock/toolbar receive clicks through empty stage chrome. */
+  pointer-events: none;
 }
 
 .empty-state-card {
@@ -570,6 +572,7 @@ select.select {
   background: var(--color-empty-bg);
   border-radius: 16px;
   box-shadow: var(--shadow-empty);
+  pointer-events: auto;
 }
 
 .empty-state-card h2 {

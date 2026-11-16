@@ -552,7 +552,7 @@ function bootEditor() {
             l.sh -= (cut * l.sh) / l.h;
             l.h -= cut;
           }
-          recordStep({ type: "crop", edge: d, amount: x });
+          if (x) recordStep({ type: "crop", edge: d, amount: x });
           render();
         }),
     );
@@ -652,6 +652,7 @@ function bootEditor() {
         pushHistory();
         const swap = mode === "left" || mode === "right";
         for (const [layer, img] of live) applyBitmap(layer, img, swap);
+        recordStep({ type: "transform", mode });
         render();
       } catch {
         say("Could not transform that image.", "error");
@@ -1272,10 +1273,12 @@ function bootEditor() {
           offset += l.w;
         }
       }
+      const mergedIds = new Set(group.map((l) => l.id));
       const img = new Image();
       img.onload = () => {
         pushHistory();
-        layers = layers.filter((l) => !selected.has(l.id));
+        // Remove the snapshotted merge group, not the live selection (it can change while the dialog/encode runs).
+        layers = layers.filter((l) => !mergedIds.has(l.id));
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         addImage(img, `Merged ${group.length} images`, true);
@@ -1361,10 +1364,11 @@ function bootEditor() {
       }
       refreshTemplates();
     }
-    function applyStepToLayer(layer, step) {
+    async function applyStepToLayer(layer, step) {
       if (step.type === "crop") {
         const x = Math.max(0, step.amount || 0),
           edge = step.edge;
+        if (!x) return;
         if (edge === "left") {
           const cut = Math.min(x, layer.w - 1),
             source = (cut * layer.sw) / layer.w;
@@ -1412,6 +1416,12 @@ function bootEditor() {
       } else if (step.type === "move") {
         layer.x += step.dx;
         layer.y += step.dy;
+      } else if (step.type === "transform") {
+        const mode = step.mode;
+        if (!mode || !layers.includes(layer)) return;
+        const img = await rasterize(layer, mode);
+        if (!layers.includes(layer)) return;
+        applyBitmap(layer, img, mode === "left" || mode === "right");
       }
     }
     $("#recordSeries").onclick = () => {
@@ -1447,19 +1457,37 @@ function bootEditor() {
       say("Transformation template saved.");
     };
     $("#templateSelect").onchange = refreshTemplates;
-    $("#applySeries").onclick = () => {
+    let applyingSeries = false;
+    $("#applySeries").onclick = async () => {
       const template = templates.find((t) => t.id === $("#templateSelect").value);
       if (!template) return;
+      if (applyingSeries) {
+        say("A template is already running.", "warn");
+        return;
+      }
       let targets = layers.filter((layer) => selected.has(layer.id));
       if (!targets.length && active()) targets = [active()];
       if (!targets.length) {
         say("Select one or more images first.", "warn");
         return;
       }
-      pushHistory();
-      for (const layer of targets) for (const step of template.steps) applyStepToLayer(layer, step);
-      render();
-      say(`Applied “${template.name}” to ${targets.length} image${targets.length === 1 ? "" : "s"}.`);
+      applyingSeries = true;
+      $("#applySeries").disabled = true;
+      try {
+        pushHistory();
+        for (const layer of targets) {
+          if (!layers.includes(layer)) continue;
+          for (const step of template.steps) await applyStepToLayer(layer, step);
+        }
+        render();
+        say(`Applied “${template.name}” to ${targets.length} image${targets.length === 1 ? "" : "s"}.`);
+      } catch {
+        say("Could not apply that template.", "error");
+        render();
+      } finally {
+        applyingSeries = false;
+        refreshTemplates();
+      }
     };
     $("#deleteTemplate").onclick = () => {
       const id = $("#templateSelect").value;
@@ -1667,6 +1695,51 @@ function bootEditor() {
     );
     new ResizeObserver(fitCanvas).observe($("#stage"));
     render();
+    window.__imageEditorTest = {
+      snapshot() {
+        return {
+          recording,
+          recordedSteps: recordedSteps.map((step) => ({ ...step })),
+          templates: templates.map((t) => ({ id: t.id, name: t.name, steps: t.steps.map((step) => ({ ...step })) })),
+          canvas: { width: canvas.width, height: canvas.height },
+          layers: layers.map((l) => ({
+            id: l.id,
+            name: l.name,
+            x: l.x,
+            y: l.y,
+            w: l.w,
+            h: l.h,
+            sx: l.sx,
+            sy: l.sy,
+            sw: l.sw,
+            sh: l.sh,
+            visible: l.visible !== false,
+            opacity: l.opacity ?? 1,
+          })),
+          selected: [...selected],
+          activeId,
+          undo: undoStack.length,
+          redo: redoStack.length,
+          applyingSeries,
+        };
+      },
+      sample(x, y) {
+        const d = ctx.getImageData(Math.max(0, Math.min(canvas.width - 1, x)), Math.max(0, Math.min(canvas.height - 1, y)), 1, 1).data;
+        return [d[0], d[1], d[2], d[3]];
+      },
+      dataUrl() {
+        return canvas.toDataURL("image/png");
+      },
+      setSelected(ids) {
+        selected = new Set(ids);
+        activeId = ids.find((id) => layers.some((l) => l.id === id)) ?? null;
+        topId = null;
+        const restored = layers.find((layer) => layer.id === activeId);
+        if (restored && restored.visible !== false) topId = restored.id;
+        drawList();
+        render();
+      },
+    };
   })();
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootEditor);

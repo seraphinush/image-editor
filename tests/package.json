@@ -1,0 +1,12 @@
+{
+  "name": "image-editor-automation-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:automation": "playwright test automation.spec.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}
