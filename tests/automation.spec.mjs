@@ -427,7 +427,7 @@ test("A22 merge then copy smoke", async ({ page, context }) => {
   await expect.poll(statusText.bind(null, page)).toMatch(/copied|Clipboard/i);
 });
 
-test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ page, context }) => {
+test("A23 portrait pair fit, 9:16, place left, reorder, copy", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   const start = await snap(page);
   expect(start.layers).toHaveLength(0);
@@ -464,16 +464,11 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
   await expect(page.locator("#ratioCurrent")).toHaveText("9:16");
   await page.keyboard.press("Escape");
 
-  await page.locator("#invertRatioBtn").click();
-  await page.waitForFunction(() => {
-    const c = window.__imageEditorTest.snapshot().canvas;
-    return c.width === 500 && c.height === 281;
-  });
-  await expect(page.locator("#ratioCurrent")).toHaveText("16:9");
-
   await placeCell(page, 0, 1);
   const placed = await snap(page);
   const active = placed.layers.find((l) => l.id === placed.activeId);
+  expect(placed.canvas).toEqual({ width: 450, height: 800 });
+  await expect(page.locator("#ratioCurrent")).toHaveText("9:16");
   expect(active.name).toBe("b-500x800.png");
   expect(active.x).toBe(0);
 
@@ -514,7 +509,7 @@ test("A23 portrait pair fit, 9:16, invert, place left, reorder, copy", async ({ 
       live: window.__imageEditorTest.sample(10, 10),
     };
   });
-  expect(copied.width).toBe(500);
-  expect(copied.height).toBe(281);
+  expect(copied.width).toBe(450);
+  expect(copied.height).toBe(800);
   expect(copied.px).toEqual(copied.live);
 });

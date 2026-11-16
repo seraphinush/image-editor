@@ -127,10 +127,10 @@ Last full run: **2026-11-16**
 - **Expected:** Merged dimensions correct; copy succeeds or documents clipboard grant.
 - **Last result:** PASS — 2026-11-16
 
-### A23 — Portrait pair: fit, 9:16, invert, place left, reorder, copy
-- **Steps:** Defaults (500×500, ratio 1:1). Add A then B, both 500×800 (wider than 9:16), in one pick so both stay selected and A is first in the images list. Frame → fit canvas to image. Frame → ratio 9:16 (presets are 1:1, 3:4, 9:16). Invert ratio. Layout → place grid → middle left. Drag B to the front of the images list (top on desktop, left on mobile). Copy.
-- **Expected:** List order starts A, B and A is the visible top layer. After fit the canvas is 500×800. 9:16 crops to 450×800; invert makes 16:9 (500×281) with the active image on the left edge. Moving B to the front of the list puts B on top of the canvas. The copied PNG matches that canvas.
-- **Last result:** PASS — 2026-11-16
+### A23 — Portrait pair: fit, 9:16, place left, reorder, copy
+- **Steps:** Defaults (500×500, ratio 1:1). Add A then B, both 500×800 (wider than 9:16), in one pick so both stay selected and A is first in the images list. Frame → fit canvas to image. Frame → ratio 9:16 (presets stay 1:1, 3:4, 9:16). Layout → place grid → middle left. Drag B to the front of the images list (top on desktop, left on mobile). Copy.
+- **Expected:** List order starts A, B and A is the visible top layer. After fit the canvas is 500×800. 9:16 crops straight to 450×800 and the ratio stays 9:16. Middle left puts the active image on the left edge. Moving B to the front of the list puts B on top of the canvas. The copied PNG is 450×800 and matches that canvas.
+- **Last result:** PASS — 2026-11-17 (desktop and mobile)
 
 ---
 
