@@ -1,32 +1,25 @@
-# Commit convention
+# Commit Convention
 
-This file is the only copy of the commit rules. Other instruction files may point here. Do not paste these rules into `CLAUDE.md`, `AGENTS.md`, or `.cursor/rules`.
+Single source of truth. Point other agent files here; do not duplicate.
 
-## When
+## Guardrails
+- Commit or push only when explicitly asked.
+- Never force-push (`main`/`master` strictly prohibited), hard-reset, modify git config, or bypass hooks.
+- Amend only if explicitly requested, unpushed, and created in this session.
+- Never commit secrets (`.env`, credentials, tokens).
+- Stage only relevant files. Check `git status`, `git diff`, and `git log` before committing, and verify with `git status` after.
 
-- Create a commit only when the user asks.
-- Push only when the user asks.
-- Do not update git config.
-- Do not skip hooks, force-push, or hard-reset unless the user explicitly asks.
-- Do not force-push `main` or `master`.
-- Do not amend unless the user explicitly asks, the commit is still unpushed, and it was created in the current conversation.
-- Do not commit secrets (`.env`, credentials, tokens).
+## Format
+- Single line: `rN: <reason>`
+- `N`: Inspect `git log` every time; set `N = highest existing rN + 1`.
+- Explain the reason for the change after the colon.
 
-## Message
-
-- One line: `rN: why this change`
-- `N` is one greater than the highest `rN` already in `git log`. Look it up every time.
-- The text after the colon says why.
-
-```
+```text
 r29: keep the portrait run on the 9:16 crop
 ```
 
-## How
-
-On PowerShell, do not use `&&` and do not use a bash heredoc. Pass the message as a here-string.
-
-Before committing, inspect `git status`, `git diff`, and `git log` so the number and the message match the change. Stage only the files that belong in the commit. Run `git status` after the commit.
+## PowerShell Execution
+No `&&` or bash heredocs. Use here-strings:
 
 ```powershell
 git commit -m @'
