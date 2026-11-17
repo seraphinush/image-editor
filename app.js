@@ -96,14 +96,23 @@ function bootEditor() {
       });
     applyTheme();
     function say(message, tone) {
-      const el = $("#status");
-      el.textContent = message;
-      el.classList.remove("is-visible", "is-warn", "is-error");
+      const el = $("#status"),
+        kind = tone === "warn" || tone === "error" ? tone : "success",
+        icons = { success: "check", warn: "question_mark", error: "exclamation" };
+      el.classList.remove("is-visible", "is-success", "is-warn", "is-error");
       void el.offsetWidth;
-      el.classList.add("is-visible");
-      if (tone === "warn" || tone === "error") el.classList.add("is-" + tone);
+      el.replaceChildren();
+      const icon = document.createElement("span");
+      icon.className = "material-symbols outlined toast-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = icons[kind];
+      const text = document.createElement("span");
+      text.className = "toast-message";
+      text.textContent = message;
+      el.append(icon, text);
+      el.classList.add("is-visible", "is-" + kind);
       clearTimeout(say.timer);
-      say.timer = setTimeout(() => el.classList.remove("is-visible", "is-warn", "is-error"), 2200);
+      say.timer = setTimeout(() => el.classList.remove("is-visible", "is-success", "is-warn", "is-error"), 2200);
     }
     function confirmDialog({ title, message, accent = "yes" }) {
       const dialog = $("#confirm"),
