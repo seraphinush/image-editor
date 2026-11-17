@@ -109,33 +109,23 @@ function bootEditor() {
       const dialog = $("#confirm"),
         yes = $("#confirmYes"),
         no = $("#confirmNo"),
-        actions = $("#confirmActions");
+        safe = accent === "yes" ? yes : no;
       $("#confirmTitle").textContent = title;
       $("#confirmMessage").textContent = message;
       yes.classList.toggle("primary", accent === "yes");
       no.classList.toggle("primary", accent === "no");
-      actions.replaceChildren(accent === "yes" ? no : yes, accent === "yes" ? yes : no);
-      dialog.showModal();
-      (accent === "yes" ? yes : no).focus();
+      $("#confirmActions").replaceChildren(accent === "yes" ? no : yes, accent === "yes" ? yes : no);
       return new Promise((resolve) => {
-        const onClick = (e) => {
-          const rect = dialog.getBoundingClientRect();
-          const inside = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-          if (!inside) dialog.close("no");
+        const finish = () => {
+          yes.onclick = null;
+          no.onclick = null;
+          resolve(dialog.returnValue === "yes");
         };
-        dialog.addEventListener("click", onClick);
-        dialog.addEventListener(
-          "close",
-          () => {
-            dialog.removeEventListener("click", onClick);
-            yes.onclick = null;
-            no.onclick = null;
-            resolve(dialog.returnValue === "yes");
-          },
-          { once: true },
-        );
+        dialog.addEventListener("close", finish, { once: true });
         yes.onclick = () => dialog.close("yes");
         no.onclick = () => dialog.close("no");
+        dialog.showModal();
+        safe.focus();
       });
     }
     function recordStep(step) {
@@ -425,13 +415,12 @@ function bootEditor() {
       loadFiles(fileInput.files);
       fileInput.value = "";
     };
-    document.addEventListener("paste", (e) => {
-      const files = [];
-      for (const item of e.clipboardData?.items ?? [])
-        if (item.type.startsWith("image/")) {
-          const f = item.getAsFile();
-          if (f) files.push(f);
-        }
+    document.addEventListener("paste", (event) => {
+      const files = [...(event.clipboardData?.items ?? [])]
+        .map((item) => (item.type.startsWith("image/") ? item.getAsFile() : null))
+        .filter(Boolean);
+      if (!files.length) return;
+      event.preventDefault();
       loadFiles(files);
     });
     stage.addEventListener("dragover", (e) => {
@@ -1029,7 +1018,10 @@ function bootEditor() {
       });
       if (!("focusGroup" in HTMLElement.prototype)) {
         group.setAttribute("role", "menu");
-        for (const item of menuItems(group)) item.tabIndex = -1;
+        for (const item of menuItems(group)) {
+          if (!item.getAttribute("role")) item.setAttribute("role", "menuitem");
+          item.tabIndex = -1;
+        }
         group.addEventListener(
           "keydown",
           (event) => {
