@@ -31,11 +31,11 @@
           <span class="material-symbols outlined" aria-hidden="true">draft</span>
         </button>
         <div></div>
-        <button class="button icon-only" id="undoBtn" type="button" title="Undo" aria-label="Undo" disabled>
+        <button class="button icon-only" id="undoBtn" type="button" title="Undo (Ctrl+Z)" aria-label="Undo (Ctrl+Z)" disabled>
           <span class="material-symbols outlined" aria-hidden="true">undo</span></button
-        ><button class="button icon-only" id="redoBtn" type="button" title="Redo" aria-label="Redo" disabled>
+        ><button class="button icon-only" id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)" aria-label="Redo (Ctrl+Shift+Z)" disabled>
           <span class="material-symbols outlined" aria-hidden="true">redo</span></button
-        ><button class="button icon-only primary" id="copyBtn" type="button" title="Copy" aria-label="Copy">
+        ><button class="button icon-only primary" id="copyBtn" type="button" title="Copy (Ctrl+C)" aria-label="Copy (Ctrl+C)">
           <span class="material-symbols outlined" aria-hidden="true">content_copy</span></button
         ><button class="button icon-only" id="downloadBtn" type="button" title="Download PNG" aria-label="Download PNG">
           <span class="material-symbols outlined" aria-hidden="true">download</span>
@@ -48,7 +48,7 @@
       <div class="toolbar-scroller">
         <div class="tool-group is-selected" data-tool-panel="frame" role="group" aria-label="Frame">
           <div class="tool-subgroup" role="group" aria-label="Canvas size">
-            <button class="button icon-only" id="fitImageBtn" type="button" title="Fit canvas to image" aria-label="Fit canvas to image">
+            <button class="button icon-only" id="fitImageBtn" type="button" title="Fit canvas to image (F)" aria-label="Fit canvas to image (F)">
               <span class="material-symbols outlined" aria-hidden="true">zoom_out_map</span>
             </button>
             <input id="canvasW" type="number" min="1" value="500" aria-label="Canvas width" /><span class="unit">px</span>
@@ -120,10 +120,10 @@
           </div>
         </div>
         <div class="tool-group" data-tool-panel="layout" role="group" aria-label="Layout">
-          <button class="button icon-only" id="handBtn" type="button" title="Hand tool" aria-label="Hand tool" aria-pressed="true">
+          <button class="button icon-only" id="handBtn" type="button" title="Hand tool (H)" aria-label="Hand tool (H)" aria-pressed="true">
             <span class="material-symbols outlined" aria-hidden="true">pan_tool</span>
           </button>
-          <button class="button icon-only" id="layoutGridBtn" type="button" title="Place image on the canvas" aria-label="Place image on the canvas" aria-pressed="false">
+          <button class="button icon-only" id="layoutGridBtn" type="button" title="Place image on the canvas (V)" aria-label="Place image on the canvas (V)" aria-pressed="false">
             <span class="material-symbols outlined" aria-hidden="true">grid_on</span>
           </button>
         </div>
@@ -176,16 +176,16 @@
       </div>
     </nav>
     <div class="tool-dock" aria-label="Tool groups">
-      <button class="button dock-btn" type="button" data-dock="frame" aria-pressed="true" aria-label="Frame" title="Frame">
+      <button class="button dock-btn" type="button" data-dock="frame" aria-pressed="true" aria-label="Frame (1)" title="Frame (1)">
         <span class="material-symbols outlined" aria-hidden="true">crop_free</span>
       </button>
-      <button class="button dock-btn" type="button" data-dock="layout" aria-pressed="false" aria-label="Layout" title="Layout">
+      <button class="button dock-btn" type="button" data-dock="layout" aria-pressed="false" aria-label="Layout (2)" title="Layout (2)">
         <span class="material-symbols outlined" aria-hidden="true">grid_on</span>
       </button>
-      <button class="button dock-btn" type="button" data-dock="transform" aria-pressed="false" aria-label="Transform" title="Transform">
+      <button class="button dock-btn" type="button" data-dock="transform" aria-pressed="false" aria-label="Transform (3)" title="Transform (3)">
         <span class="material-symbols outlined" aria-hidden="true">flip</span>
       </button>
-      <button class="button dock-btn" type="button" data-dock="automation" aria-pressed="false" aria-label="Automation and templates" title="Automation and templates">
+      <button class="button dock-btn" type="button" data-dock="automation" aria-pressed="false" aria-label="Automation and templates (4)" title="Automation and templates (4)">
         <span class="material-symbols outlined" aria-hidden="true">automation</span>
       </button>
     </div>
@@ -224,7 +224,7 @@
       <header class="images-panel-header">
         <h2 class="images-panel-title" id="imagesTitle">Images</h2>
         <span class="image-count" id="count">0</span
-        ><button class="button icon-only" id="openBtn" type="button" title="Add images" aria-label="Add images">
+        ><button class="button icon-only" id="openBtn" type="button" title="Add images (Ctrl+O)" aria-label="Add images (Ctrl+O)">
           <span class="material-symbols outlined" aria-hidden="true">add</span>
         </button>
         <div class="images-panel-actions">

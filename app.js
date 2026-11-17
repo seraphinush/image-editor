@@ -435,17 +435,65 @@ function bootEditor() {
       el.setAttribute("aria-label", title);
     };
     document.addEventListener("keydown", (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target;
       if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      if (e.altKey) return;
       const key = e.key.toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod) {
+        if (key === "z" && e.shiftKey) {
+          e.preventDefault();
+          $("#redoBtn").click();
+          return;
+        }
+        if (key === "z") {
+          e.preventDefault();
+          $("#undoBtn").click();
+          return;
+        }
+        if (key === "y") {
+          e.preventDefault();
+          $("#redoBtn").click();
+          return;
+        }
+        if (key === "c") {
+          e.preventDefault();
+          $("#copyBtn").click();
+          return;
+        }
+        if (key === "o") {
+          e.preventDefault();
+          open();
+          return;
+        }
+        return;
+      }
       if (key === "h") {
-        useHandTool();
         e.preventDefault();
+        useHandTool();
       } else if (key === "c") {
+        e.preventDefault();
         $("#cropAmount").focus();
         $("#cropAmount").select();
+      } else if (key === "v") {
         e.preventDefault();
+        selectTool("layout", true);
+        usePlaceTool();
+      } else if (key === "f") {
+        e.preventDefault();
+        $("#fitImageBtn").click();
+      } else if (key === "1") {
+        e.preventDefault();
+        selectTool("frame", true);
+      } else if (key === "2") {
+        e.preventDefault();
+        selectTool("layout", true);
+      } else if (key === "3") {
+        e.preventDefault();
+        selectTool("transform", true);
+      } else if (key === "4") {
+        e.preventDefault();
+        selectTool("automation", true);
       }
     });
     canvas.draggable = false;

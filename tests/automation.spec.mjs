@@ -602,3 +602,47 @@ test("A26 canvas drag moves only the hit layer", async ({ page }) => {
   expect(afterSecond.layers[2].x).toBe(beforeSecond[2].x);
   expect(afterSecond.layers[2].y).toBe(beforeSecond[2].y);
 });
+
+test("A27 keyboard shortcuts undo redo docks fit place and input guard", async ({ page }) => {
+  const [red] = fixture("red-100.png");
+  await addImages(page, [red]);
+
+  await scalePercent(page, 50);
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers[0].w === 50);
+  await page.keyboard.press("Control+z");
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers[0].w === 100);
+  await page.keyboard.press("Control+Shift+Z");
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers[0].w === 50);
+
+  await page.keyboard.press("Control+z");
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers[0].w === 100);
+  await page.keyboard.press("f");
+  await page.waitForFunction(() => {
+    const c = window.__imageEditorTest.snapshot().canvas;
+    return c.width === 100 && c.height === 100;
+  });
+
+  await page.keyboard.press("v");
+  await expect(page.locator("#layoutOverlay")).toBeVisible();
+  await expect(page.locator('[data-dock="layout"]')).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("h");
+  await expect(page.locator("#layoutOverlay")).toBeHidden();
+  await expect(page.locator("#handBtn")).toHaveAttribute("aria-pressed", "true");
+
+  await page.keyboard.press("3");
+  await expect(page.locator('[data-dock="transform"]')).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("1");
+  await expect(page.locator('[data-dock="frame"]')).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("4");
+  await expect(page.locator('[data-dock="automation"]')).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("2");
+  await expect(page.locator('[data-dock="layout"]')).toHaveAttribute("aria-pressed", "true");
+
+  await openFrame(page);
+  await page.locator("#scaleValue").fill("100");
+  await page.locator("#scaleValue").focus();
+  await page.keyboard.press("v");
+  await expect(page.locator("#layoutOverlay")).toBeHidden();
+  await page.keyboard.press("3");
+  await expect(page.locator('[data-dock="frame"]')).toHaveAttribute("aria-pressed", "true");
+});

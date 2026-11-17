@@ -147,6 +147,11 @@ Last full run: **2026-11-16**
 - **Expected:** First drag moves only the first list image (topmost). After it is parked aside, the next drag moves only the second list image (now topmost in the stack). The other layers stay put.
 - **Last result:** PASS — 2026-11-17 (desktop and mobile)
 
+### A27 — Keyboard shortcuts
+- **Steps:** Add red 100×100. Scale 50%. Press Ctrl+Z, then Ctrl+Shift+Z. Undo again, press F. Press V then H. Press 3, 1, 4, 2. Focus the scale field and press V and 3.
+- **Expected:** Undo/redo restore sizes. F fits the canvas to 100×100. V opens the place grid on the Layout dock; H returns to the hand tool. Dock keys 1–4 select Frame, Layout, Transform, Automation. Shortcuts do nothing while typing in the scale field.
+- **Last result:** PASS — 2026-11-17 (desktop and mobile)
+
 ---
 
 ## Bugs found this run
@@ -159,4 +164,4 @@ Last full run: **2026-11-16**
 | B4 | Low | Double-click Apply during async transform apply could overlap | `applyingSeries` guard + disable Apply until finished |
 | B5 | Medium | `.empty-state { inset:0 }` captured pointer events over the stage, fighting mobile dock clicks in automation | `pointer-events: none` on `.empty-state`, `auto` on `.empty-state-card` (`styles.css`) |
 
-**Suite result:** `npx playwright test` in `tests/` → **52 passed** (26 cases × desktop + mobile Chromium) on 2026-11-17.
+**Suite result:** `npx playwright test` in `tests/` → **54 passed** (27 cases × desktop + mobile Chromium) on 2026-11-17.
