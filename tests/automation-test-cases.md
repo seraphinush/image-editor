@@ -10,7 +10,7 @@ Last full run: **2026-11-16**
 1. Open **Automation** dock (`data-dock="automation"`).
 2. **Record** (`#recordSeries`): toggles recording; while on, crop / scale / place / move / flip / rotate append steps.
 3. **Stop**, then **Save** (`#saveSeries`) names a template into `localStorage` (`image-editor-templates`).
-4. **Apply** (`#applySeries`) runs the selected template’s steps on selected layers (or the active layer).
+4. **Apply** (`#applySeries`) runs the selected template’s steps on every selected layer.
 5. **Copy** exports the composite canvas PNG to the clipboard; **Merge** H/V combines selected layers in **images-list order**.
 
 ---
@@ -129,7 +129,22 @@ Last full run: **2026-11-16**
 
 ### A23 — Portrait pair: fit, 9:16, place left, reorder, copy
 - **Steps:** Defaults (500×500, ratio 1:1). Add A then B, both 500×800 (wider than 9:16), in one pick so both stay selected and A is first in the images list. Frame → fit canvas to image. Frame → ratio 9:16 (presets stay 1:1, 3:4, 9:16). Layout → place grid → middle left. Drag B to the front of the images list (top on desktop, left on mobile). Copy.
-- **Expected:** List order starts A, B and A is the visible top layer. After fit the canvas is 500×800. 9:16 crops straight to 450×800 and the ratio stays 9:16. Middle left puts the active image on the left edge. Moving B to the front of the list puts B on top of the canvas. The copied PNG is 450×800 and matches that canvas.
+- **Expected:** List order starts A, B and A is the visible top layer. After fit the canvas is 500×800. 9:16 crops straight to 450×800 and the ratio stays 9:16. Middle left shifts every selected image to the left edge. Moving B to the front of the list puts B on top of the canvas. The copied PNG is 450×800 and matches that canvas.
+- **Last result:** PASS — 2026-11-17 (desktop and mobile)
+
+### A24 — Layout place uses the images selection
+- **Steps:** Add red 100×100 and blue 200×150 in one pick so both stay selected. Layout → place grid → top left. Then select only blue. Layout → place grid → bottom right.
+- **Expected:** With both selected, both move to (0, 0). With only blue selected, red stays at (0, 0) and blue moves to the bottom-right corner of the canvas.
+- **Last result:** PASS — 2026-11-17 (desktop and mobile)
+
+### A25 — Scale and crop use the images selection
+- **Steps:** Add red 100×100 and blue 200×150 in one pick so both stay selected. Scale 50%. Crop left by 10px. Select only red. Scale 200%.
+- **Expected:** Both images scale and crop together while selected. After only red is selected, red scales again and blue keeps its earlier size.
+- **Last result:** PASS — 2026-11-17 (desktop and mobile)
+
+### A26 — Canvas drag moves only the hit layer
+- **Steps:** Add red, blue, and green in one pick (all selected, stacked at center). Drag the stack. Park the first list image at top-left. Select all again. Drag the remaining stack at center.
+- **Expected:** First drag moves only the first list image (topmost). After it is parked aside, the next drag moves only the second list image (now topmost in the stack). The other layers stay put.
 - **Last result:** PASS — 2026-11-17 (desktop and mobile)
 
 ---
@@ -144,4 +159,4 @@ Last full run: **2026-11-16**
 | B4 | Low | Double-click Apply during async transform apply could overlap | `applyingSeries` guard + disable Apply until finished |
 | B5 | Medium | `.empty-state { inset:0 }` captured pointer events over the stage, fighting mobile dock clicks in automation | `pointer-events: none` on `.empty-state`, `auto` on `.empty-state-card` (`styles.css`) |
 
-**Suite result:** `npx playwright test` in `tests/` → **46 passed** (23 cases × desktop + mobile Chromium) on 2026-11-16.
+**Suite result:** `npx playwright test` in `tests/` → **52 passed** (26 cases × desktop + mobile Chromium) on 2026-11-17.

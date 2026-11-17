@@ -188,9 +188,6 @@ function bootEditor() {
       restoreState(redoStack.pop());
     };
     updateHistoryButtons();
-    function active() {
-      return layers.find((x) => x.id === activeId);
-    }
     function stack() {
       // The first card in the images list is the topmost layer on the canvas.
       return [...layers].reverse();
@@ -463,6 +460,51 @@ function bootEditor() {
         sy = rect.height ? canvas.height / rect.height : 1;
       return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
     }
+    function cropLayer(layer, edge, amount) {
+      const x = Math.max(0, amount || 0);
+      if (!x) return false;
+      if (edge === "left") {
+        const cut = Math.min(x, layer.w - 1),
+          src = (cut * layer.sw) / layer.w;
+        layer.sx += src;
+        layer.sw -= src;
+        layer.x += cut;
+        layer.w -= cut;
+      } else if (edge === "right") {
+        const cut = Math.min(x, layer.w - 1);
+        layer.sw -= (cut * layer.sw) / layer.w;
+        layer.w -= cut;
+      } else if (edge === "top") {
+        const cut = Math.min(x, layer.h - 1),
+          src = (cut * layer.sh) / layer.h;
+        layer.sy += src;
+        layer.sh -= src;
+        layer.y += cut;
+        layer.h -= cut;
+      } else if (edge === "bottom") {
+        const cut = Math.min(x, layer.h - 1);
+        layer.sh -= (cut * layer.sh) / layer.h;
+        layer.h -= cut;
+      }
+      return true;
+    }
+    function scaleLayer(layer, value, unit) {
+      const factor = unit === "percent" ? value / 100 : value / layer.w,
+        cx = layer.x + layer.w / 2,
+        cy = layer.y + layer.h / 2;
+      layer.w = Math.max(1, Math.round(layer.w * factor));
+      layer.h = Math.max(1, Math.round(layer.h * factor));
+      layer.x = Math.round(cx - layer.w / 2);
+      layer.y = Math.round(cy - layer.h / 2);
+    }
+    function transformTargets() {
+      const targets = layers.filter((l) => selected.has(l.id));
+      if (!targets.length) {
+        say("Choose an image first.", "warn");
+        return null;
+      }
+      return targets;
+    }
     let dragFrame = 0;
     function endDrag() {
       if (dragFrame) {
@@ -470,16 +512,16 @@ function bootEditor() {
         dragFrame = 0;
       }
       if (!drag) return;
-      const l = layers.find((q) => q.id === drag.id);
-      if (l && drag.pending) {
-        l.x = drag.startLayerX + (drag.pending.x - drag.x);
-        l.y = drag.startLayerY + (drag.pending.y - drag.y);
+      const layer = layers.find((q) => q.id === drag.id);
+      if (layer && drag.pending) {
+        layer.x = drag.startLayerX + (drag.pending.x - drag.x);
+        layer.y = drag.startLayerY + (drag.pending.y - drag.y);
       }
-      if (l && (Math.round(l.x) !== Math.round(drag.startLayerX) || Math.round(l.y) !== Math.round(drag.startLayerY))) {
-        l.x = Math.round(l.x);
-        l.y = Math.round(l.y);
+      if (layer && (Math.round(layer.x) !== Math.round(drag.startLayerX) || Math.round(layer.y) !== Math.round(drag.startLayerY))) {
+        layer.x = Math.round(layer.x);
+        layer.y = Math.round(layer.y);
         pushHistory(drag.beforeState);
-        recordStep({ type: "move", dx: l.x - drag.startLayerX, dy: l.y - drag.startLayerY });
+        recordStep({ type: "move", dx: layer.x - drag.startLayerX, dy: layer.y - drag.startLayerY });
       }
       drag = null;
       stage.style.cursor = hand ? "grab" : "default";
@@ -491,15 +533,27 @@ function bootEditor() {
         if (!hand || (layoutOverlay && !layoutOverlay.hidden) || e.target.closest(".layout-grid, .toolbar, .tool-dock, .resize-handle")) return;
         e.preventDefault();
         const p = canvasPoint(e);
+        // Hit the topmost visible layer under the pointer (first card in the images list).
         const hit = [...stack()].reverse().find((l) => l.visible !== false && p.x >= l.x && p.x <= l.x + l.w && p.y >= l.y && p.y <= l.y + l.h);
         if (!hit) return;
         if (!selected.has(hit.id)) {
-          selected.add(hit.id);
+          selected = new Set([hit.id]);
           activeId = hit.id;
           topId = hit.id;
           drawList();
+        } else {
+          activeId = hit.id;
+          if (hit.visible !== false) topId = hit.id;
         }
-        drag = { id: hit.id, x: p.x, y: p.y, startLayerX: hit.x, startLayerY: hit.y, beforeState: captureState(), pointerId: e.pointerId };
+        drag = {
+          id: hit.id,
+          x: p.x,
+          y: p.y,
+          startLayerX: hit.x,
+          startLayerY: hit.y,
+          beforeState: captureState(),
+          pointerId: e.pointerId,
+        };
         try {
           stage.setPointerCapture(e.pointerId);
         } catch {}
@@ -517,10 +571,10 @@ function bootEditor() {
         dragFrame = requestAnimationFrame(() => {
           dragFrame = 0;
           if (!drag?.pending) return;
-          const l = layers.find((q) => q.id === drag.id);
-          if (!l) return;
-          l.x = drag.startLayerX + (drag.pending.x - drag.x);
-          l.y = drag.startLayerY + (drag.pending.y - drag.y);
+          const layer = layers.find((q) => q.id === drag.id);
+          if (!layer) return;
+          layer.x = drag.startLayerX + (drag.pending.x - drag.x);
+          layer.y = drag.startLayerY + (drag.pending.y - drag.y);
           render({ skipThumbs: true });
         });
       },
@@ -531,62 +585,25 @@ function bootEditor() {
     document.querySelectorAll("[data-crop]").forEach(
       (b) =>
         (b.onclick = () => {
-          const l = active(),
-            d = b.dataset.crop,
-            x = Math.max(0, +$("#cropAmount").value || 0),
-            y = x;
-          if (!l) {
-            say("Choose an image first.", "warn");
-            return;
-          }
-          if (x) pushHistory();
-          if (d === "left") {
-            const cut = Math.min(x, l.w - 1),
-              src = (cut * l.sw) / l.w;
-            l.sx += src;
-            l.sw -= src;
-            l.x += cut;
-            l.w -= cut;
-          }
-          if (d === "right") {
-            const cut = Math.min(x, l.w - 1);
-            l.sw -= (cut * l.sw) / l.w;
-            l.w -= cut;
-          }
-          if (d === "top") {
-            const cut = Math.min(y, l.h - 1),
-              src = (cut * l.sh) / l.h;
-            l.sy += src;
-            l.sh -= src;
-            l.y += cut;
-            l.h -= cut;
-          }
-          if (d === "bottom") {
-            const cut = Math.min(y, l.h - 1);
-            l.sh -= (cut * l.sh) / l.h;
-            l.h -= cut;
-          }
-          if (x) recordStep({ type: "crop", edge: d, amount: x });
+          const targets = transformTargets(),
+            edge = b.dataset.crop,
+            amount = Math.max(0, +$("#cropAmount").value || 0);
+          if (!targets) return;
+          if (!amount) return;
+          pushHistory();
+          for (const layer of targets) cropLayer(layer, edge, amount);
+          recordStep({ type: "crop", edge, amount });
           render();
         }),
     );
     $("#scaleBtn").onclick = () => {
-      const v = Math.max(1, +$("#scaleValue").value || 100),
-        l = active(),
+      const targets = transformTargets(),
+        value = Math.max(1, +$("#scaleValue").value || 100),
         unit = $("#scalePixels").getAttribute("aria-pressed") === "true" ? "pixels" : "percent";
-      if (!l) {
-        say("Choose an image first.", "warn");
-        return;
-      }
+      if (!targets) return;
       pushHistory();
-      const factor = unit === "percent" ? v / 100 : v / l.w;
-      const cx = l.x + l.w / 2,
-        cy = l.y + l.h / 2;
-      l.w = Math.max(1, Math.round(l.w * factor));
-      l.h = Math.max(1, Math.round(l.h * factor));
-      l.x = Math.round(cx - l.w / 2);
-      l.y = Math.round(cy - l.h / 2);
-      recordStep({ type: "scale", value: v, unit });
+      for (const layer of targets) scaleLayer(layer, value, unit);
+      recordStep({ type: "scale", value, unit });
       render();
     };
     $("#scalePercent").onclick = () => {
@@ -632,15 +649,6 @@ function bootEditor() {
         img.onerror = () => reject(new Error("transform"));
         img.src = out.toDataURL("image/png");
       });
-    }
-    function transformTargets() {
-      const chosen = layers.filter((l) => selected.has(l.id)),
-        targets = chosen.length ? chosen : active() ? [active()] : [];
-      if (!targets.length) {
-        say("Choose an image first.", "warn");
-        return null;
-      }
-      return targets;
     }
     function applyBitmap(layer, img, swap) {
       const cx = layer.x + layer.w / 2,
@@ -1242,15 +1250,15 @@ function bootEditor() {
     addEventListener("orientationchange", settleAfterOrientation);
     screen.orientation?.addEventListener("change", settleAfterOrientation);
     $("#layoutGridBtn").onclick = () => (layoutOverlay.hidden ? usePlaceTool() : useHandTool());
+    function placeLayer(layer, col, row) {
+      layer.x = col === 0 ? 0 : col === 2 ? canvas.width - layer.w : Math.round((canvas.width - layer.w) / 2);
+      layer.y = row === 0 ? 0 : row === 2 ? canvas.height - layer.h : Math.round((canvas.height - layer.h) / 2);
+    }
     function placeImage(col, row) {
-      const l = active();
-      if (!l) {
-        say("Choose an image first.", "warn");
-        return;
-      }
+      const targets = transformTargets();
+      if (!targets) return;
       pushHistory();
-      l.x = col === 0 ? 0 : col === 2 ? canvas.width - l.w : Math.round((canvas.width - l.w) / 2);
-      l.y = row === 0 ? 0 : row === 2 ? canvas.height - l.h : Math.round((canvas.height - l.h) / 2);
+      for (const layer of targets) placeLayer(layer, col, row);
       recordStep({ type: "place", col, row });
       render();
       useHandTool();
@@ -1383,40 +1391,9 @@ function bootEditor() {
     }
     async function applyStepToLayer(layer, step) {
       if (step.type === "crop") {
-        const x = Math.max(0, step.amount || 0),
-          edge = step.edge;
-        if (!x) return;
-        if (edge === "left") {
-          const cut = Math.min(x, layer.w - 1),
-            source = (cut * layer.sw) / layer.w;
-          layer.sx += source;
-          layer.sw -= source;
-          layer.x += cut;
-          layer.w -= cut;
-        } else if (edge === "right") {
-          const cut = Math.min(x, layer.w - 1);
-          layer.sw -= (cut * layer.sw) / layer.w;
-          layer.w -= cut;
-        } else if (edge === "top") {
-          const cut = Math.min(x, layer.h - 1),
-            source = (cut * layer.sh) / layer.h;
-          layer.sy += source;
-          layer.sh -= source;
-          layer.y += cut;
-          layer.h -= cut;
-        } else if (edge === "bottom") {
-          const cut = Math.min(x, layer.h - 1);
-          layer.sh -= (cut * layer.sh) / layer.h;
-          layer.h -= cut;
-        }
+        cropLayer(layer, step.edge, step.amount);
       } else if (step.type === "scale") {
-        const factor = step.unit === "percent" ? step.value / 100 : step.value / layer.w,
-          cx = layer.x + layer.w / 2,
-          cy = layer.y + layer.h / 2;
-        layer.w = Math.max(1, Math.round(layer.w * factor));
-        layer.h = Math.max(1, Math.round(layer.h * factor));
-        layer.x = Math.round(cx - layer.w / 2);
-        layer.y = Math.round(cy - layer.h / 2);
+        scaleLayer(layer, step.value, step.unit);
       } else if (step.type === "align") {
         if (step.mode === "center" || step.mode === "horizontal") layer.x = Math.round((canvas.width - layer.w) / 2);
         if (step.mode === "center" || step.mode === "vertical") layer.y = Math.round((canvas.height - layer.h) / 2);
@@ -1426,10 +1403,7 @@ function bootEditor() {
         if (step.edge === "top") layer.y = 0;
         if (step.edge === "bottom") layer.y = canvas.height - layer.h;
       } else if (step.type === "place") {
-        const col = step.col,
-          row = step.row;
-        layer.x = col === 0 ? 0 : col === 2 ? canvas.width - layer.w : Math.round((canvas.width - layer.w) / 2);
-        layer.y = row === 0 ? 0 : row === 2 ? canvas.height - layer.h : Math.round((canvas.height - layer.h) / 2);
+        placeLayer(layer, step.col, step.row);
       } else if (step.type === "move") {
         layer.x += step.dx;
         layer.y += step.dy;
@@ -1482,8 +1456,7 @@ function bootEditor() {
         say("A template is already running.", "warn");
         return;
       }
-      let targets = layers.filter((layer) => selected.has(layer.id));
-      if (!targets.length && active()) targets = [active()];
+      const targets = layers.filter((layer) => selected.has(layer.id));
       if (!targets.length) {
         say("Select one or more images first.", "warn");
         return;
@@ -1542,7 +1515,7 @@ function bootEditor() {
     }
     function downloadFilename() {
       if (!layers.length) return "image-editor.png";
-      const layer = active() || (layers.length === 1 ? layers[0] : null) || layers.find((l) => selected.has(l.id)) || layers[0];
+      const layer = layers.find((l) => l.id === activeId && selected.has(l.id)) || layers.find((l) => selected.has(l.id)) || layers[0];
       return safePngName(layer.name);
     }
     $("#downloadBtn").onclick = async () => {

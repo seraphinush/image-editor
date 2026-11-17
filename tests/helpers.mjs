@@ -162,6 +162,18 @@ export async function placeCell(page, col, row) {
   await page.locator(`#layoutOverlay [data-place-col="${col}"][data-place-row="${row}"]`).click();
 }
 
+/** Drag on the canvas in canvas pixel coordinates (hand tool). */
+export async function dragCanvas(page, fromX, fromY, toX, toY) {
+  const box = await page.locator("#canvas").boundingBox();
+  const s = await snap(page);
+  const sx = box.width / s.canvas.width;
+  const sy = box.height / s.canvas.height;
+  await page.mouse.move(box.x + fromX * sx, box.y + fromY * sy);
+  await page.mouse.down();
+  await page.mouse.move(box.x + toX * sx, box.y + toY * sy, { steps: 12 });
+  await page.mouse.up();
+}
+
 export async function setCanvasSize(page, w, h) {
   await openFrame(page);
   // Aspect lock mirrors W↔H on input; unlock for independent sizes.

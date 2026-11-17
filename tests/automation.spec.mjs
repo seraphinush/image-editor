@@ -10,6 +10,7 @@ import {
   openFrame,
   openTransform,
   placeCell,
+  dragCanvas,
   recordOff,
   recordOn,
   saveTemplate,
@@ -466,11 +467,10 @@ test("A23 portrait pair fit, 9:16, place left, reorder, copy", async ({ page, co
 
   await placeCell(page, 0, 1);
   const placed = await snap(page);
-  const active = placed.layers.find((l) => l.id === placed.activeId);
   expect(placed.canvas).toEqual({ width: 450, height: 800 });
   await expect(page.locator("#ratioCurrent")).toHaveText("9:16");
-  expect(active.name).toBe("b-500x800.png");
-  expect(active.x).toBe(0);
+  expect(placed.selected).toEqual(placed.layers.map((l) => l.id));
+  expect(placed.layers.every((l) => l.x === 0)).toBe(true);
 
   const cards = page.locator("#layers .image-card");
   await cards.nth(1).scrollIntoViewIfNeeded();
@@ -512,4 +512,93 @@ test("A23 portrait pair fit, 9:16, place left, reorder, copy", async ({ page, co
   expect(copied.width).toBe(450);
   expect(copied.height).toBe(800);
   expect(copied.px).toEqual(copied.live);
+});
+
+test("A24 layout place shifts every selected image", async ({ page }) => {
+  const [imageA, imageB] = fixture("red-100.png", "blue-200x150.png");
+  await page.setInputFiles("#fileInput", [imageA, imageB]);
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers.length === 2);
+  const loaded = await snap(page);
+  expect(loaded.selected).toEqual(loaded.layers.map((l) => l.id));
+
+  await placeCell(page, 0, 0);
+  const both = await snap(page);
+  expect(both.layers.every((l) => l.x === 0 && l.y === 0)).toBe(true);
+
+  await page.evaluate((id) => window.__imageEditorTest.setSelected([id]), both.layers[1].id);
+  await placeCell(page, 2, 2);
+  const one = await snap(page);
+  const [kept, moved] = one.layers;
+  expect(kept.x).toBe(0);
+  expect(kept.y).toBe(0);
+  expect(moved.x).toBe(one.canvas.width - moved.w);
+  expect(moved.y).toBe(one.canvas.height - moved.h);
+  expect(one.selected).toEqual([moved.id]);
+});
+
+test("A25 scale and crop change every selected image", async ({ page }) => {
+  const [imageA, imageB] = fixture("red-100.png", "blue-200x150.png");
+  await page.setInputFiles("#fileInput", [imageA, imageB]);
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers.length === 2);
+  const before = await snap(page);
+  expect(before.selected).toEqual(before.layers.map((l) => l.id));
+
+  await scalePercent(page, 50);
+  const scaled = await snap(page);
+  expect(scaled.layers[0].w).toBe(50);
+  expect(scaled.layers[0].h).toBe(50);
+  expect(scaled.layers[1].w).toBe(100);
+  expect(scaled.layers[1].h).toBe(75);
+
+  await cropLeft(page, 10);
+  const cropped = await snap(page);
+  expect(cropped.layers[0].w).toBe(40);
+  expect(cropped.layers[1].w).toBe(90);
+
+  await page.evaluate((id) => window.__imageEditorTest.setSelected([id]), cropped.layers[0].id);
+  await scalePercent(page, 200);
+  const one = await snap(page);
+  expect(one.layers[0].w).toBe(80);
+  expect(one.layers[0].h).toBe(100);
+  expect(one.layers[1].w).toBe(90);
+  expect(one.layers[1].h).toBe(75);
+});
+
+test("A26 canvas drag moves only the hit layer", async ({ page }) => {
+  const files = fixture("red-100.png", "blue-200x150.png", "green-50x300.png");
+  await page.setInputFiles("#fileInput", files);
+  await page.waitForFunction(() => window.__imageEditorTest.snapshot().layers.length === 3);
+  const start = await snap(page);
+  expect(start.layers.map((l) => l.name)).toEqual(["red-100.png", "blue-200x150.png", "green-50x300.png"]);
+  expect(start.selected).toEqual(start.layers.map((l) => l.id));
+  const origin = start.layers.map((l) => ({ x: l.x, y: l.y }));
+
+  // Instance 1: stacked at center — first list card is topmost and moves alone.
+  await dragCanvas(page, 250, 250, 310, 290);
+  const afterTop = await snap(page);
+  expectNear(afterTop.layers[0].x, origin[0].x + 60);
+  expectNear(afterTop.layers[0].y, origin[0].y + 40);
+  expect(afterTop.layers[1].x).toBe(origin[1].x);
+  expect(afterTop.layers[1].y).toBe(origin[1].y);
+  expect(afterTop.layers[2].x).toBe(origin[2].x);
+  expect(afterTop.layers[2].y).toBe(origin[2].y);
+
+  // Move the topmost layer off the stack so the second card becomes the hit target.
+  await page.evaluate((id) => window.__imageEditorTest.setSelected([id]), afterTop.layers[0].id);
+  await placeCell(page, 0, 0);
+  const parked = await snap(page);
+  expect(parked.layers[0].x).toBe(0);
+  expect(parked.layers[0].y).toBe(0);
+  await page.evaluate((ids) => window.__imageEditorTest.setSelected(ids), parked.layers.map((l) => l.id));
+
+  // Instance 2: drag the remaining stack — second list card moves, others stay.
+  const beforeSecond = parked.layers.map((l) => ({ x: l.x, y: l.y }));
+  await dragCanvas(page, 250, 250, 280, 270);
+  const afterSecond = await snap(page);
+  expect(afterSecond.layers[0].x).toBe(beforeSecond[0].x);
+  expect(afterSecond.layers[0].y).toBe(beforeSecond[0].y);
+  expectNear(afterSecond.layers[1].x, beforeSecond[1].x + 30);
+  expectNear(afterSecond.layers[1].y, beforeSecond[1].y + 20);
+  expect(afterSecond.layers[2].x).toBe(beforeSecond[2].x);
+  expect(afterSecond.layers[2].y).toBe(beforeSecond[2].y);
 });
